@@ -58,7 +58,7 @@ e2e/run.sh
 
 The network runs in one-hour rounds. When a round closes:
 
-1. Fees that landed in the treasury during the round become its pool. The operators' share (60% by default) is split.
+1. Fees that landed in the treasury during the round become its pool. By default all of it goes to operators (`SPLIT`).
 2. A node makes the cut if it passed **95%** of at least **6** checks in that hour. Weight = rarity (1/√ good nodes in its country) × 1.5 for home lines. Max 3 paid nodes per wallet, one per /24.
 3. The server signs one Solana transaction with a transfer to every operator and sends it. Amounts under 0.001 SOL carry over to the next payout. If nobody makes the cut, the pool rolls into the next round.
 
@@ -68,7 +68,7 @@ Any SOL that lands in the treasury counts as fees. The treasury never needs topp
 curl -X POST https://go.vlana.app/api/admin/topup -H "x-admin-key: $ADMIN_KEY" -d '{"sol": 0.5}'
 ```
 
-Checkers' and buyback shares stay in the treasury. Without `PAYER_KEY` the server runs the same math and keeps balances owed; you add fees with `POST /api/admin/inflow` and record transfers with `POST /api/admin/payouts`.
+If `SPLIT` keeps a share back, it stays in the treasury. Without `PAYER_KEY` the server runs the same math and keeps balances owed; you add fees with `POST /api/admin/inflow` and record transfers with `POST /api/admin/payouts`.
 
 ## Verify the live site
 
@@ -119,9 +119,9 @@ MINT=<token mint> PUBLIC_URL=https://go.vlana.app ADMIN_KEY=... PROBE_KEY=... no
 | `RPC_URL` | mainnet-beta | Solana RPC |
 | `DEV_FREE` | | `1` with no `MINT`: everyone gets a dev plan |
 | `TIERS` | 4 plans | JSON, see `server.js` |
-| `SPLIT` | `60/20/20` | each round's fees: operators, checkers, buyback |
+| `SPLIT` | `{"operators":100}` | each round's fees by share, in %. Anything not for operators stays in the treasury |
 | `PAYER_KEY` | | base58 secret key of the treasury wallet that collects creator fees. Set it and payouts are automatic. |
-| `BUYBACK_WALLET` | | cold wallet the checkers + buyback shares are swept to. Shown on the Payouts page next to the treasury. |
+| `BUYBACK_WALLET` | | optional cold wallet for a share kept back by `SPLIT`. Shown on the Payouts page next to the treasury. |
 | `ROUND_MIN` | `60` | round length, minutes |
 | `GOOD_UPTIME` | `0.95` | share of passed checks a node needs in a round |
 | `MIN_CHECKS` | `6` | checks a node needs in a round to count |

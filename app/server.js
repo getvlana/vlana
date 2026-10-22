@@ -26,7 +26,7 @@ const GOOD_UPTIME = +process.env.GOOD_UPTIME || 0.95;  // share of successful ch
 const MIN_CHECKS = +process.env.MIN_CHECKS || 6;       // checks a node needs in the round to count
 const MIN_PAYOUT = +process.env.MIN_PAYOUT || 0.001;   // SOL; smaller amounts wait and go out with the next one
 const PAYER_KEY = process.env.PAYER_KEY || '';         // base58 secret key of the treasury that collects creator fees
-const BUYBACK_WALLET = process.env.BUYBACK_WALLET || ''; // cold wallet the checkers + buyback shares are swept to; shown for proof
+const BUYBACK_WALLET = process.env.BUYBACK_WALLET || ''; // optional: cold wallet for any share not paid to operators (see SPLIT); shown for proof
 const MAX_NODES_PER_OPERATOR = +process.env.MAX_NODES_PER_OPERATOR || 3;
 const ONLINE_MS = 15 * 60e3;       // a node is online if a probe succeeded within this window
 const BALANCE_TTL = 10 * 60e3;
@@ -42,7 +42,7 @@ const TIERS = JSON.parse(process.env.TIERS || JSON.stringify([
 ]));
 const DEV_TIER = { name: 'dev', min: 0, devices: 3, gb: 50, home: true, perks: [] };
 // how each round's creator fees are split, percent; operators' part is paid out automatically
-const SPLIT = JSON.parse(process.env.SPLIT || '{"operators":60,"checkers":20,"buyback":20}');
+const SPLIT = JSON.parse(process.env.SPLIT || '{"operators":100}');
 
 fs.mkdirSync(DATA, { recursive: true });
 // secrets that must survive restarts but don't need to be configured by hand

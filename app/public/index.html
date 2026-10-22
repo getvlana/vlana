@@ -507,15 +507,15 @@ footer a:hover{color:var(--a)}
       <div class="cell"><div class="mono dim">fees in</div><div class="v" id="t-in">—</div></div>
       <div class="cell"><div class="mono dim">paid to operators</div><div class="v lime" id="t-paid">—</div></div>
       <div class="cell"><div class="mono dim">earned, waiting</div><div class="v" id="t-owed">—</div></div>
-      <div class="cell"><div class="mono dim">checkers + buyback</div><div class="v" id="t-kept">—</div></div>
+      <div class="cell"><div class="mono dim">share to operators</div><div class="v" id="t-kept">—</div></div>
     </div>
     <div class="row">
-      <div class="cell" style="display:grid;gap:18px" id="p-split"></div>
+      <div class="cell" style="display:grid;gap:18px;align-content:start" id="p-split"></div>
       <div class="cell"><h3 style="margin-bottom:10px">How it's split</h3>
         <ol class="list">
           <li><i>01</i><span>pump.fun creator fees land in the <a class="lime" id="p-treasury" target="_blank" rel="noopener">treasury</a>.</span></li>
           <li><i>02</i>Every hour, fees that came in become that round's pool.</li>
-          <li><i>03</i>Nodes with 95%+ of checks passed split the operators' part, by rarity and home bonus.</li>
+          <li><i>03</i>Nodes with 95%+ of checks passed split the pool, by rarity and home bonus.</li>
           <li><i>04</i><span>SOL is sent right away, one transaction for everyone. <a class="lime" href="#/docs#pay">Details →</a></span></li>
         </ol></div>
     </div>
@@ -1070,15 +1070,15 @@ async function loadPay() {
       ${w ? `<div class="bal">${w.balance == null ? '—' : (+w.balance).toLocaleString('en', { maximumFractionDigits: 3 })}<small>SOL now</small></div>
       <div class="addr">${esc(w.address)}</div>
       <div class="acts"><button class="btn ghost sm" data-copy="${esc(w.address)}">Copy address</button><a class="btn lime sm" target="_blank" rel="noopener" href="https://solscan.io/account/${esc(w.address)}">Solscan ↗</a></div>
-      <p class="dim" style="font-size:15px">${note}</p>`
+      ${note ? `<p class="dim" style="font-size:15px">${note}</p>` : ''}`
       : `<p class="dim" style="font-size:15px">Not published yet.</p>`}</div>`;
   $('#p-wallets').innerHTML =
-    wal(W.treasury, 'treasury · receives creator fees · pays operators', 'Hot wallet. Holds only what the next payouts need.') +
-    wal(W.buyback, 'buyback · checkers + buyback share', 'Cold wallet. Everything that isn’t paid to operators gets swept here.');
+    wal(W.treasury, 'treasury · receives creator fees · pays operators') +
+    (W.buyback ? wal(W.buyback, 'reserve · share not paid to operators', 'Cold wallet. Anything outside the operators’ share is swept here.') : '');
   $('#t-in').textContent = sol(W.feesIn);
   $('#t-paid').textContent = sol(pay.paid);
   $('#t-owed').textContent = sol(W.owed);
-  $('#t-kept').textContent = sol(Math.max(0, W.feesIn * (100 - (pay.split.operators ?? 100)) / 100));
+  $('#t-kept').textContent = (pay.split.operators ?? 100) + '%';
   const tr = $('#p-treasury');
   if (pay.treasury) tr.href = `https://solscan.io/account/${pay.treasury}`; else tr.removeAttribute('href');
   const names = { operators: 'node operators · sent every hour', checkers: 'checkers', buyback: '$VLANA buyback' };
