@@ -2,6 +2,7 @@
 //   setup        → logs in two operators + one user, enrolls a node per operator, prints both enroll tokens
 //   live         → waits for both nodes to register, runs the real probe until both are active, prints their ids
 //   connect <id> → connects through the user's subscription link for entry node <id> and fetches a page
+//   tags         → prints the control plane's map of opaque client tags (nodes only see these) to k<id>/h<id>/probe
 'use strict';
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -109,5 +110,10 @@ async function connect(id) {
   } finally { x.kill(); }
 }
 
+async function tags() {
+  const r = await fetch(SERVER + '/api/admin/tags', { headers: { 'x-admin-key': 'e2e' } });
+  console.log(JSON.stringify(await r.json()));
+}
+
 const [step, arg] = process.argv.slice(2);
-({ setup, live, connect: () => connect(+arg) })[step]().catch(e => { console.error('✗', e.message); process.exit(1); });
+({ setup, live, tags, connect: () => connect(+arg) })[step]().catch(e => { console.error('✗', e.message); process.exit(1); });

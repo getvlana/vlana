@@ -64,10 +64,10 @@ async function check(t, uuid) {
 }
 
 async function round() {
-  const { uuid, targets } = await api('/api/probe/targets');
+  const { uuids, targets } = await api('/api/probe/targets');
   const results = [], queue = [...targets];
   await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
-    for (let t; (t = queue.shift());) results.push(await check(t, uuid).catch(() => ({ id: t.id, ok: false })));
+    for (let t; (t = queue.shift());) results.push(await check(t, uuids[Math.floor(Math.random() * uuids.length)]).catch(() => ({ id: t.id, ok: false })));
   }));
   await api('/api/probe/report', { probe: ID, results });
   console.log(new Date().toISOString(), results.map(r => `#${r.id}:${r.ok ? `${r.latency}ms ${r.mbps}Mbps` : 'DOWN'}`).join('  ') || 'no nodes');

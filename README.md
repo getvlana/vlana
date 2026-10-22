@@ -26,18 +26,21 @@ Every connection runs through two nodes owned by different wallets. The entry kn
 2. Each operator enrolls a node. Each node generates its own REALITY keys, starts real **Xray** and the real **agent.py**, and registers.
 3. The real **probe** checks both nodes through VLESS+REALITY tunnels and marks them active.
 4. The user takes their subscription link, connects to entry A with Xray and loads pages.
-5. Xray's own counters are read on both nodes:
+5. Xray's own counters are read on both nodes before and after:
    - entry A carried the user's key,
-   - exit B received the traffic under entry A's hop key,
-   - exit B **never saw the user's key**.
+   - exit B received at least 90% of those bytes under entry A's hop key,
+   - exit B **never saw the user's key**,
+   - node configs contain only opaque client tags, so nobody can tell a checker from a user.
 6. Same again through entry B → exit A.
 
 ```
+▸ nodes can't tell checkers from users
+  ✓ node config only has opaque client tags
 ▸ user connects via entry a
-  entry a counters: {"k1": 44298}
-  exit  b counters: {"h1": 37428}
-  ✓ entry a carried the user's traffic
-  ✓ exit b received it under entry a's hop key
+  entry a counters: {"k1": 1527375}
+  exit  b counters: {"h1": 1527447}
+  ✓ entry a carried the user's traffic (+1527375 bytes)
+  ✓ exit b received it under entry a's hop key (+1527447 bytes)
   ✓ exit b never saw the user's key — it only knows entry a
 ▸ user connects via entry b
   ✓ entry b carried the user's traffic
@@ -60,6 +63,26 @@ The network runs in one-hour rounds. When a round closes:
 3. The server signs one Solana transaction with a transfer to every operator and sends it. Amounts under 0.001 SOL carry over to the next payout. If nobody makes the cut, the pool rolls into the next round.
 
 Checkers' and buyback shares stay in the treasury. Without `PAYER_KEY` the server runs the same math and keeps balances owed; you add fees with `POST /api/admin/inflow` and record transfers with `POST /api/admin/payouts`.
+
+## Verify the live site
+
+`https://vlana.app/api/version` returns the commit the server runs and SHA-256 of the files it serves to you: the app, `install.sh` and `agent.py`. They are served byte for byte from this repo. The **Docs → Verify** page compares them in your browser against `raw.githubusercontent.com` at that commit, or do it by hand:
+
+```sh
+C=$(curl -s https://vlana.app/api/version | python3 -c 'import json,sys;print(json.load(sys.stdin)["commit"])')
+curl -s https://vlana.app/install.sh | sha256sum
+curl -s https://raw.githubusercontent.com/getvlana/vlana/$C/app/node/install.sh | sha256sum
+```
+
+## Checkers can't be gamed
+
+A node could try to serve checks well and real users badly. It can't tell them apart:
+
+- node configs carry opaque per-client tags, never labels like `probe` or a device id;
+- checker keys are derived from a server secret, rotate every day and look like any user key;
+- checks go entry → exit exactly like user traffic, so both hops are tested.
+
+Run checkers from networks unrelated to the control server, so their IPs don't give them away.
 
 ## Layout
 
@@ -137,8 +160,8 @@ Options: `PORT=8443`, `SNI=www.microsoft.com` before `bash`. Logs: `journalctl -
 SERVER=https://vlana.app PROBE_KEY=... PROBE_ID=fra-1 node app/probe/probe.js
 ```
 
-Needs `xray` and `curl` in `PATH`. Run several from different networks.
+Needs `xray` and `curl` in `PATH`. Run several, from different networks than the control server.
 
 ## License
 
-MIT
+[AGPL-3.0](LICENSE). Run it, fork it, change it — if you run a modified version as a service, publish your changes.

@@ -661,6 +661,22 @@ footer a:hover{color:var(--a)}
   </ul>
 </section>
 
+<section id="verify" data-t="Verify">
+  <h3>Verify</h3>
+  <p>The code is public on <a class="lime" id="v-gh" target="_blank" rel="noopener">GitHub</a>. Here you can check that what <b>vlana.app</b> serves right now is byte for byte the same as the repo at the commit it says it runs. Your browser downloads both copies and compares them; nothing goes through us.</p>
+  <table id="v-table"><tr><td class="mono dim">checking…</td></tr></table>
+  <div class="acts" style="margin-top:14px"><button class="btn ghost sm" id="v-run">Check again</button><span class="mono dim" id="v-commit" style="align-self:center"></span></div>
+  <h4>Do it yourself</h4>
+  <p>Same check from a terminal. Both lines must print the same hash.</p>
+  <div class="code"><code id="v-cli"></code></div>
+  <h4>What this proves, and what it can't</h4>
+  <ul>
+    <li><b>The app</b> you sign in with, <b>the installer</b> node operators run as root and <b>the node agent</b> are exactly the public code.</li>
+    <li>Node configs only carry opaque client tags, and checker keys rotate daily and travel the same two hops as yours. A node can't tell a check from a real user, so it can't fake uptime by serving checks only.</li>
+    <li>The control server's own code can't be proven from outside, by us or anyone. That's why the parts that touch your device and node servers are the ones you can verify, and why payouts are public on-chain.</li>
+  </ul>
+</section>
+
 <section id="faq" data-t="FAQ">
   <h3>FAQ</h3>
   <details class="qa"><summary>Do I pay anything besides holding the token?</summary><p>No. Holding is the subscription. Signing in is a free message signature, not a transaction.</p></details>
@@ -679,7 +695,7 @@ footer a:hover{color:var(--a)}
 
 <footer class="mono">
   <span>Vlana</span>
-  <span class="flinks"><a href="#/network">network</a><a href="#/payouts">payouts</a><a href="#/docs">docs</a><a id="f-gh" target="_blank" rel="noopener">github</a><a id="f-pump" target="_blank" rel="noopener">pump.fun</a></span>
+  <span class="flinks"><a href="#/docs#verify" id="f-build"></a><a href="#/network">network</a><a href="#/payouts">payouts</a><a href="#/docs">docs</a><a id="f-gh" target="_blank" rel="noopener">github</a><a id="f-pump" target="_blank" rel="noopener">pump.fun</a></span>
 </footer>
 
 <div class="modal" id="wm">
@@ -989,6 +1005,33 @@ $('#o-add').onclick = async () => {
 };
 setInterval(() => { if (op) $('#o-end').textContent = left(op.round.end - Date.now()); }, 1000);
 
+// ---------- verify: served files vs the repo at the running commit ----------
+const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+const sha256 = async url => { const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error(r.status); return hex(await crypto.subtle.digest('SHA-256', await r.arrayBuffer())); };
+let ver = null;
+async function verify() {
+  const t = $('#v-table');
+  try { ver = ver || await api('/api/version'); } catch { t.innerHTML = '<tr><td class="dim">Version info unavailable.</td></tr>'; return; }
+  const gh = (ver.repo || '').match(/github\.com\/([^/]+\/[^/#?]+)/)?.[1]?.replace(/\.git$/, '');
+  if (gh) $('#v-gh').href = `https://github.com/${gh}/tree/${ver.commit}`;
+  $('#v-commit').textContent = ver.commit ? `commit ${ver.commit.slice(0, 7)}` : '';
+  $('#f-build').textContent = ver.commit ? `build ${ver.commit.slice(0, 7)}` : '';
+  if (!gh || !ver.commit) { t.innerHTML = '<tr><td class="dim">This deployment doesn\u2019t publish a repo or commit.</td></tr>'; return; }
+  const raw = f => `https://raw.githubusercontent.com/${gh}/${ver.commit}/${f}`;
+  const host = location.origin;
+  $('#v-cli').innerHTML = Object.entries(ver.files).map(([f, v]) => `curl -s ${esc(host)}${esc(v.url)} | sha256sum<br>curl -s ${esc(raw(f))} | sha256sum`).join('<br><br>');
+  t.innerHTML = `<tr><th>file</th><th>served by ${esc(location.host)}</th><th>on GitHub</th><th></th></tr>` +
+    Object.keys(ver.files).map(f => `<tr data-f="${esc(f)}"><td>${esc(f.split('/').pop())}</td><td class="mono">…</td><td class="mono">…</td><td class="mono">…</td></tr>`).join('');
+  await Promise.all(Object.entries(ver.files).map(async ([f, v]) => {
+    const row = t.querySelector(`[data-f="${f}"]`).children;
+    const [a, b] = await Promise.all([sha256(v.url).catch(() => null), sha256(raw(f)).catch(() => null)]);
+    row[1].textContent = a ? a.slice(0, 12) + '…' : 'error';
+    row[2].textContent = b ? b.slice(0, 12) + '…' : 'not found';
+    row[3].innerHTML = a && b && a === b ? '<span class="lime">✓ match</span>' : '<span style="color:var(--bad)">✗ differs</span>';
+  }));
+}
+$('#v-run').onclick = () => verify();
+
 // ---------- docs ----------
 const secs = [...document.querySelectorAll('#doc section')];
 $('#toc').innerHTML = secs.map((s, i) => `<a href="#/docs#${s.id}" data-s="${s.id}"><i>${String(i + 1).padStart(2, '0')}</i>${s.dataset.t}</a>`).join('');
@@ -1243,7 +1286,7 @@ async function route() {
   show(view);
   if (view === 'net') { initGlobe(); return; }
   if (view === 'pay') { loadPay().catch(e => toast(e.message, true)); return; }
-  if (view === 'docs') { if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView()); return; }
+  if (view === 'docs') { verify(); if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView()); return; }
   try {
     if (view === 'app') await loadMe();
     if (view === 'node') { if (!me) await loadMe().catch(() => { }); await loadOp(); }
@@ -1257,6 +1300,7 @@ addEventListener('hashchange', route);
 $('#c-go').onclick = () => openWallets('#/app');
 
 renderHow();
+api('/api/version').then(v => { ver = v; if (v.commit) $('#f-build').textContent = `build ${v.commit.slice(0, 7)}`; }).catch(() => { });
 loadNet();
 setInterval(loadNet, 60e3);
 route();

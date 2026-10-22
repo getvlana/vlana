@@ -49,10 +49,30 @@ fs.mkdirSync(DATA, { recursive: true });
 const secretsFile = path.join(DATA, 'secrets.json');
 const secrets = fs.existsSync(secretsFile) ? JSON.parse(fs.readFileSync(secretsFile, 'utf8')) : {};
 if (!secrets.session) secrets.session = crypto.randomBytes(32).toString('hex');
-if (!secrets.probeUuid) secrets.probeUuid = crypto.randomUUID();
 fs.writeFileSync(secretsFile, JSON.stringify(secrets), { mode: 0o600 });
 const SESSION_SECRET = process.env.SESSION_SECRET || secrets.session;
-const PROBE_UUID = secrets.probeUuid;
+
+// nodes only ever see opaque client tags, so an operator can't tell users, hops and checkers apart
+const tag = (kind, id) => 'c' + crypto.createHmac('sha256', SESSION_SECRET).update(`${kind}:${id}`).digest('hex').slice(0, 12);
+const uuidFrom = h => `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${'89ab'[parseInt(h[16], 16) % 4]}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+// checker keys rotate daily and travel entry → exit like any user key; yesterday's stay valid during the switch
+const PROBE_KEYS = 3;
+function probeKeys(t = Date.now()) {
+  const d = Math.floor(t / 86400e3), out = [];
+  for (const dd of [d - 1, d]) for (let i = 0; i < PROBE_KEYS; i++) {
+    const h = crypto.createHmac('sha256', SESSION_SECRET).update(`probe:${dd}:${i}`).digest('hex');
+    out.push({ id: `${dd}.${i}`, uuid: uuidFrom(h), tier: { home: i % 2 === 0 }, probe: true, today: dd === d });
+  }
+  return out;
+}
+
+// what this server is running, so anyone can compare it with the public repo
+const REVISION = (() => {
+  try { return fs.readFileSync(path.join(__dirname, 'REVISION'), 'utf8').trim(); } catch { }
+  try { return require('node:child_process').execSync('git rev-parse HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return ''; }
+})();
+const SERVED = { 'app/public/index.html': '/', 'app/node/install.sh': '/install.sh', 'app/node/agent.py': '/agent.py' };
+const fileHash = rel => crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, '..', rel))).digest('hex');
 
 const db = new DatabaseSync(path.join(DATA, 'vlana.db'));
 db.exec(`
@@ -382,12 +402,11 @@ function nodeConfig(node) {
   const online = onlineSet();
   const live = q.nodesLive.all().filter(n => n.pbk);
   const exits = live.filter(n => n.status === 'active' && online.has(n.id));
-  const keys = node.status === 'active' ? activeKeys() : [];
+  const keys = [...(node.status === 'active' ? activeKeys() : []), ...probeKeys()].map(k => ({ ...k, tag: tag(k.probe ? 'p' : 'k', k.id) }));
   const clients = [
-    { id: PROBE_UUID, email: 'probe', flow: FLOW },
-    ...keys.map(k => ({ id: k.uuid, email: `k${k.id}`, flow: FLOW })),
-    ...live.filter(n => n.id !== node.id).map(n => ({ id: n.hop_uuid, email: `h${n.id}`, flow: FLOW })),
-  ];
+    ...keys.map(k => ({ id: k.uuid, email: k.tag, flow: FLOW })),
+    ...live.filter(n => n.id !== node.id).map(n => ({ id: n.hop_uuid, email: tag('h', n.id), flow: FLOW })),
+  ].sort((a, b) => a.email < b.email ? -1 : 1);
   const outbounds = [{ tag: 'direct', protocol: 'freedom' }, { tag: 'block', protocol: 'blackhole' }];
   const rules = [
     { inboundTag: ['api-in'], outboundTag: 'api' },
@@ -400,7 +419,7 @@ function nodeConfig(node) {
     const x = exitFor(k, node, exits);
     if (!x) continue;
     if (!byExit.has(x.id)) byExit.set(x.id, { x, users: [] });
-    byExit.get(x.id).users.push(`k${k.id}`);
+    byExit.get(x.id).users.push(k.tag);
   }
   for (const { x, users } of byExit.values()) {
     outbounds.push(realityOut(`exit-${x.id}`, x, node.hop_uuid));
@@ -466,11 +485,10 @@ const nodeAuth = req => {
 };
 const keyOk = (req, header, key) => key && req.headers[header] && crypto.timingSafeEqual(Buffer.from(sha(String(req.headers[header]))), Buffer.from(sha(key)));
 
-function installScript() {
-  return fs.readFileSync(path.join(__dirname, 'node', 'install.sh'), 'utf8')
-    .replaceAll('__SERVER__', PUBLIC_URL).replaceAll('__SNI__', DEFAULT_SNI);
-}
-const installCmd = t => `curl -fsSL ${PUBLIC_URL}/install.sh | sudo bash -s ${t}`;
+// install.sh is served byte for byte as in the repo; it defaults to vlana.app, other deployments pass their URL
+const installCmd = t => PUBLIC_URL === 'https://vlana.app'
+  ? `curl -fsSL ${PUBLIC_URL}/install.sh | sudo bash -s ${t}`
+  : `curl -fsSL ${PUBLIC_URL}/install.sh | sudo VLANA_SERVER=${PUBLIC_URL} bash -s ${t}`;
 
 function meView(wallet) {
   const w = q.wallet.get(wallet);
@@ -564,7 +582,8 @@ async function route(req, res) {
   // public
   if (m === 'GET' && p === '/api/network') return send(res, 200, networkView());
   if (m === 'GET' && p === '/api/payouts') return send(res, 200, payoutsView());
-  if (m === 'GET' && p === '/install.sh') return send(res, 200, installScript(), { 'Content-Type': 'text/x-shellscript; charset=utf-8' });
+  if (m === 'GET' && p === '/install.sh') { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8' }); return fs.createReadStream(path.join(__dirname, 'node', 'install.sh')).pipe(res); }
+  if (m === 'GET' && p === '/api/version') return send(res, 200, { commit: REVISION, repo: REPO_URL, files: Object.fromEntries(Object.entries(SERVED).map(([f, url]) => [f, { url, sha256: fileHash(f) }])) });
   if (m === 'GET' && p === '/agent.py') { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); return fs.createReadStream(path.join(__dirname, 'node', 'agent.py')).pipe(res); }
 
   if (m === 'GET' && (mm = p.match(/^\/sub\/([\w-]{10,64})$/))) {
@@ -665,13 +684,13 @@ async function route(req, res) {
     if (m === 'POST' && p === '/api/agent/stats') {
       const { stats } = await readBody(req, 2e6);
       let total = 0;
-      const mo = month();
+      const mo = month(), keyOf = new Map(q.keysAll.all().map(k => [tag('k', k.id), k.id]));
       for (const s of Array.isArray(stats) ? stats : []) {
         const bytes = Math.max(0, (+s.up || 0) + (+s.down || 0));
         if (!bytes) continue;
         total += bytes;
-        const km = /^k(\d+)$/.exec(s.email || '');
-        if (km) q.keyUse.run(mo, bytes, +km[1]);
+        const id = keyOf.get(s.email);
+        if (id) q.keyUse.run(mo, bytes, id);
       }
       if (total) q.traffic.run(n.id, day(), total);
       return send(res, 200, { ok: true });
@@ -683,7 +702,7 @@ async function route(req, res) {
   if (p.startsWith('/api/probe/')) {
     if (!keyOk(req, 'x-probe-key', PROBE_KEY)) return send(res, 401, { error: 'probe key' });
     if (m === 'GET' && p === '/api/probe/targets') {
-      return send(res, 200, { uuid: PROBE_UUID, targets: q.nodesLive.all().filter(n => n.pbk).map(n => ({ id: n.id, ip: n.ip, port: n.port, pbk: n.pbk, sid: n.sid, sni: n.sni })) });
+      return send(res, 200, { uuids: probeKeys().filter(k => k.today).map(k => k.uuid), targets: q.nodesLive.all().filter(n => n.pbk).map(n => ({ id: n.id, ip: n.ip, port: n.port, pbk: n.pbk, sid: n.sid, sni: n.sni })) });
     }
     if (m === 'POST' && p === '/api/probe/report') {
       const { probe, results } = await readBody(req, 1e6);
@@ -722,6 +741,13 @@ async function route(req, res) {
       const country = /^[A-Za-z]{2}$/.test(b.country || '') ? b.country.toUpperCase() : n.country;
       q.nodeAdmin.run(status, b.home === undefined ? n.home : (b.home ? 1 : 0), country, n.id);
       return send(res, 200, { ok: true });
+    }
+    if (m === 'GET' && p === '/api/admin/tags') {
+      const out = {};
+      for (const k of q.keysAll.all()) out[tag('k', k.id)] = `k${k.id}`;
+      for (const n of q.nodesAll.all()) out[tag('h', n.id)] = `h${n.id}`;
+      for (const k of probeKeys()) out[tag('p', k.id)] = 'probe';
+      return send(res, 200, out);
     }
     // without PAYER_KEY: add fees by hand to the next round, and record transfers you sent yourself
     if (m === 'POST' && p === '/api/admin/inflow') {
