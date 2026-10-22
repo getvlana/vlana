@@ -589,8 +589,10 @@ async function route(req, res) {
   let mm;
 
   // public
-  if (m === 'GET' && p === '/api/network') return send(res, 200, networkView());
-  if (m === 'GET' && p === '/api/payouts') return send(res, 200, payoutsView());
+  // public read-only data, so the landing page (and anyone) can show it
+  const open = { 'Access-Control-Allow-Origin': '*' };
+  if (m === 'GET' && p === '/api/network') return send(res, 200, networkView(), open);
+  if (m === 'GET' && p === '/api/payouts') return send(res, 200, payoutsView(), open);
   if (m === 'GET' && p === '/install.sh') { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8' }); return fs.createReadStream(path.join(__dirname, 'node', 'install.sh')).pipe(res); }
   if (m === 'GET' && p === '/api/version') return send(res, 200, { commit: REVISION, repo: REPO_URL, files: Object.fromEntries(Object.entries(SERVED).map(([f, url]) => [f, { url, sha256: fileHash(f) }])) });
   if (m === 'GET' && p === '/agent.py') { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); return fs.createReadStream(path.join(__dirname, 'node', 'agent.py')).pipe(res); }
