@@ -14,6 +14,7 @@ const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replac
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const PROBE_KEY = process.env.PROBE_KEY || '';
 const RPC_URL = process.env.RPC_URL || 'https://api.mainnet-beta.solana.com';
+const PUBLIC_RPC = process.env.PUBLIC_RPC || 'https://api.mainnet-beta.solana.com'; // handed to browsers that verify rounds; RPC_URL may carry a private key
 const MINT = process.env.MINT || '';
 const REPO_URL = process.env.REPO_URL || '';
 const DEV_FREE = process.env.DEV_FREE === '1';           // no mint yet: everyone gets the dev tier
@@ -98,6 +99,9 @@ CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT);
 `);
 // weekly payouts were replaced by per-round transfers; keep any old rows aside
 if (db.prepare(`SELECT 1 FROM pragma_table_info('payouts') WHERE name='epoch'`).get()) db.exec(`ALTER TABLE payouts RENAME TO payouts_weekly`);
+// each round keeps its receipt (the exact JSON that was hashed) and the tx that put the hash on-chain
+for (const c of ['receipt TEXT', 'hash TEXT', 'memo_tx TEXT'])
+  if (!db.prepare(`SELECT 1 FROM pragma_table_info('rounds') WHERE name=?`).get(c.split(' ')[0])) db.exec(`ALTER TABLE rounds ADD COLUMN ${c}`);
 db.exec(`CREATE TABLE IF NOT EXISTS payouts(id INTEGER PRIMARY KEY AUTOINCREMENT, round INTEGER, wallet TEXT, amount REAL, tx TEXT, created INTEGER, paid_at INTEGER)`);
 
 const q = {
@@ -136,7 +140,11 @@ const q = {
   paidTotal: db.prepare(`SELECT COALESCE(SUM(amount),0) s, COUNT(*) n, COUNT(DISTINCT wallet) ops FROM payouts`),
   paidBy: db.prepare(`SELECT COALESCE(SUM(amount),0) s FROM payouts WHERE wallet=?`),
   payoutIns: db.prepare(`INSERT INTO payouts(round,wallet,amount,tx,created,paid_at) VALUES(?,?,?,?,?,?)`),
-  roundIns: db.prepare(`INSERT OR REPLACE INTO rounds(n,start,end,inflow,pool,nodes,created) VALUES(?,?,?,?,?,?,?)`),
+  roundIns: db.prepare(`INSERT OR REPLACE INTO rounds(n,start,end,inflow,pool,nodes,created,receipt,hash) VALUES(?,?,?,?,?,?,?,?,?)`),
+  roundGet: db.prepare(`SELECT * FROM rounds WHERE n=?`),
+  roundsUnposted: db.prepare(`SELECT n, hash FROM rounds WHERE hash IS NOT NULL AND memo_tx IS NULL AND n>=? ORDER BY n LIMIT 6`),
+  roundMemo: db.prepare(`UPDATE rounds SET memo_tx=? WHERE n=?`),
+  payoutsOfRound: db.prepare(`SELECT wallet, amount, tx FROM payouts WHERE round=? ORDER BY id`),
   roundsRecent: db.prepare(`SELECT * FROM rounds ORDER BY n DESC LIMIT ?`),
   feesIn: db.prepare(`SELECT COALESCE(SUM(inflow),0) s FROM rounds`),
   owedTotal: db.prepare(`SELECT COALESCE(SUM(amount),0) s FROM owed WHERE amount>0`),
@@ -267,7 +275,7 @@ function windowScores(start, end, minChecks = MIN_CHECKS) {
   const rows = nodes.map(n => {
     const s = stats.get(n.id) || { total: 0, ok: 0 };
     const uptime = s.total ? s.ok / s.total : 0;
-    return { node: n, uptime, checks: s.total, good: s.total >= minChecks && uptime >= GOOD_UPTIME, latency: s.latency ? Math.round(s.latency) : null, mbps: s.mbps ? +s.mbps.toFixed(1) : null };
+    return { node: n, uptime, checks: s.total, ok: s.ok || 0, good: s.total >= minChecks && uptime >= GOOD_UPTIME, latency: s.latency ? Math.round(s.latency) : null, mbps: s.mbps ? +s.mbps.toFixed(1) : null };
   });
   const perCountry = {};
   for (const r of rows) if (r.good) perCountry[r.node.country || 'xx'] = (perCountry[r.node.country || 'xx'] || 0) + 1;
@@ -310,14 +318,23 @@ if (PAYER_KEY) {
 }
 const solBalance = async a => (await rpc('getBalance', [a, { commitment: 'confirmed' }])).value / LAMPORTS;
 // one transaction, many SystemProgram.transfer instructions; resolves with the signature once confirmed
-async function sendSol(list) {
-  const { value: { blockhash } } = await rpc('getLatestBlockhash', [{ commitment: 'confirmed' }]);
+function sendSol(list) {
   const keys = [PAYER.pub, ...list.map(x => key32(x.wallet)), Buffer.alloc(32)];
   const sys = keys.length - 1;
   const ixs = list.map((x, i) => {
     const data = Buffer.alloc(12); data.writeUInt32LE(2, 0); data.writeBigUInt64LE(BigInt(x.lamports), 4);
     return Buffer.concat([Buffer.from([sys]), compact(2), Buffer.from([0, i + 1]), compact(data.length), data]);
   });
+  return sendTx(keys, ixs);
+}
+// a memo signed by the treasury: puts a round's receipt hash on-chain
+const MEMO_PROGRAM = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
+function sendMemo(text) {
+  const data = Buffer.from(text);
+  return sendTx([PAYER.pub, key32(MEMO_PROGRAM)], [Buffer.concat([Buffer.from([1]), compact(1), Buffer.from([0]), compact(data.length), data])]);
+}
+async function sendTx(keys, ixs) {
+  const { value: { blockhash } } = await rpc('getLatestBlockhash', [{ commitment: 'confirmed' }]);
   const msg = Buffer.concat([Buffer.from([1, 0, 1]), compact(keys.length), ...keys, key32(blockhash), compact(ixs.length), ...ixs]);
   const tx = Buffer.concat([compact(1), crypto.sign(null, msg, PAYER.key), msg]);
   const sig = await rpc('sendTransaction', [tx.toString('base64'), { encoding: 'base64', preflightCommitment: 'confirmed' }]);
@@ -349,17 +366,37 @@ async function settle(r) {
     }
     kvSet('baseline', bal);
   }
-  const pool = inflow * (SPLIT.operators ?? 100) / 100 + kv('carry', 0);
-  const rows = windowScores(start, end).filter(x => x.share > 0);
+  const carry = kv('carry', 0);
+  const pool = inflow * (SPLIT.operators ?? 100) / 100 + carry;
+  const scored = windowScores(start, end);
+  const rows = scored.filter(x => x.share > 0);
   kvSet('carry', rows.length ? 0 : pool); // nobody qualified: the pool rolls into the next round
+  const amountOf = x => x.share > 0 ? Math.floor(pool * x.share * LAMPORTS) / LAMPORTS : 0;
   for (const x of rows) {
-    const amount = Math.floor(pool * x.share * LAMPORTS) / LAMPORTS;
+    const amount = amountOf(x);
     q.earnIns.run(r, x.node.id, x.node.operator, x.share, amount);
     if (amount > 0) q.owedAdd.run(x.node.operator, amount);
   }
-  q.roundIns.run(r, start, end, inflow, pool, rows.length, now());
+  // everything needed to redo the split by hand. its sha256 goes on-chain in a memo from the treasury
+  const receipt = JSON.stringify({
+    v: 1, round: r, start, end, inflow, carry, operatorsPct: SPLIT.operators ?? 100, pool,
+    rules: { goodUptime: GOOD_UPTIME, minChecks: MIN_CHECKS, homeBonus: 1.5, maxPerOperator: MAX_NODES_PER_OPERATOR },
+    nodes: scored.map(x => ({ name: nodeName(x.node), wallet: x.node.operator, country: x.node.country || 'xx', home: !!x.node.home, checks: x.checks, ok: x.ok, counted: x.counted, share: x.share, amount: amountOf(x) })),
+  });
+  q.roundIns.run(r, start, end, inflow, pool, rows.length, now(), receipt, sha(receipt));
   console.log(`round ${r}: inflow ${inflow.toFixed(6)} pool ${pool.toFixed(6)} → ${rows.length} nodes`);
   await payDue(r);
+  await postReceipts();
+}
+async function postReceipts() {
+  if (!PAYER) return;
+  for (const r of q.roundsUnposted.all(roundOf(now()) - 48)) {
+    try {
+      const sig = await sendMemo(`vlana:r${r.n}:${r.hash}`);
+      q.roundMemo.run(sig, r.n);
+      kvSet('baseline', kv('baseline', 0) - 5000 / LAMPORTS); // the fee isn't fees in
+    } catch (e) { console.error('receipt memo failed, will retry next round:', e.message); break; }
+  }
 }
 async function payDue(r) {
   if (!PAYER) return; // manual mode: owed amounts wait for /api/admin/payouts
@@ -416,7 +453,8 @@ function nodeConfig(node) {
     ...keys.map(k => ({ id: k.uuid, email: k.tag, flow: FLOW })),
     ...live.filter(n => n.id !== node.id).map(n => ({ id: n.hop_uuid, email: tag('h', n.id), flow: FLOW })),
   ].sort((a, b) => a.email < b.email ? -1 : 1);
-  const outbounds = [{ tag: 'direct', protocol: 'freedom' }, { tag: 'block', protocol: 'blackhole' }];
+  // IPv4 out: what sites see is the node's registered address, so /api/check can name it
+  const outbounds = [{ tag: 'direct', protocol: 'freedom', settings: { domainStrategy: 'UseIPv4' } }, { tag: 'block', protocol: 'blackhole' }];
   const rules = [
     { inboundTag: ['api-in'], outboundTag: 'api' },
     { protocol: ['bittorrent'], outboundTag: 'block' },
@@ -538,6 +576,24 @@ function operatorView(wallet) {
   };
 }
 
+// where is this request coming from, and (signed in) which chain does each of my devices take
+function checkView(req) {
+  const ip = ipOf(req);
+  const live = q.nodesLive.all().filter(n => n.pbk);
+  const pub = n => ({ name: nodeName(n), country: n.country, home: !!n.home, operator: n.operator });
+  const hit = live.find(n => n.ip === ip);
+  const out = { ip, node: hit ? pub(hit) : null };
+  const wallet = sessionWallet(req);
+  if (wallet) {
+    const online = onlineSet();
+    const up = live.filter(n => n.status === 'active' && online.has(n.id));
+    out.devices = activeKeys().filter(k => k.wallet === wallet).map(k => ({
+      label: k.label,
+      chains: up.map(e => { const x = exitFor(k, e, up); return { entry: pub(e), exit: x ? pub(x) : null }; }),
+    }));
+  }
+  return out;
+}
 function networkView() {
   const online = onlineSet();
   const day = q.probeStats.all(now() - 86400e3, now() + 1);
@@ -587,7 +643,7 @@ function payoutsView() {
       feesIn: q.feesIn.get().s, owed: q.owedTotal.get().s,
     },
     paid: t.s, transfers_n: t.n, operators: t.ops,
-    rounds: q.roundsRecent.all(48).map(r => ({ n: r.n, end: r.end, inflow: r.inflow, pool: r.pool, nodes: r.nodes })),
+    rounds: q.roundsRecent.all(48).map(r => ({ n: r.n, end: r.end, inflow: r.inflow, pool: r.pool, nodes: r.nodes, hash: r.hash, memo: r.memo_tx })),
     transfers: q.paidAll.all().map(p => ({ round: p.round, wallet: p.wallet, amount: p.amount, tx: p.tx, paid_at: p.paid_at })),
   };
 }
@@ -603,6 +659,12 @@ async function route(req, res) {
   const open = { 'Access-Control-Allow-Origin': '*' };
   if (m === 'GET' && p === '/api/network') return send(res, 200, networkView(), open);
   if (m === 'GET' && p === '/api/payouts') return send(res, 200, payoutsView(), open);
+  if (m === 'GET' && (mm = p.match(/^\/api\/rounds\/(\d+)$/))) {
+    const r = q.roundGet.get(+mm[1]);
+    if (!r?.receipt) return send(res, 404, { error: 'no receipt for this round' }, open);
+    return send(res, 200, { n: r.n, receipt: r.receipt, hash: r.hash, memo: r.memo_tx, treasury: PAYER?.address || null, rpc: PUBLIC_RPC, payouts: q.payoutsOfRound.all(r.n) }, open);
+  }
+  if (m === 'GET' && p === '/api/check') return send(res, 200, checkView(req));
   if (m === 'GET' && p === '/install.sh') { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8' }); return fs.createReadStream(path.join(__dirname, 'node', 'install.sh')).pipe(res); }
   if (m === 'GET' && p === '/api/version') return send(res, 200, { commit: REVISION, repo: REPO_URL, files: Object.fromEntries(Object.entries(SERVED).map(([f, url]) => [f, { url, sha256: fileHash(f) }])) });
   if (m === 'GET' && p === '/agent.py') { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); return fs.createReadStream(path.join(__dirname, 'node', 'agent.py')).pipe(res); }

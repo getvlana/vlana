@@ -301,6 +301,10 @@ footer a:hover{color:var(--a)}
   .nrow.th{display:none!important}
   .ledger .r{grid-template-columns:52px 1fr auto}
   .ledger .r>:nth-child(3){display:none}
+  .ledger.chain .r{grid-template-columns:52px 1fr auto}
+  .ledger.chain .r>:nth-child(3){display:block;grid-column:2;margin-top:-6px}
+  .ledger.chain .r>:nth-child(3)::before{content:'→ ';color:var(--mute)}
+  .ledger.chain .r.th>:nth-child(3){display:none}
   .live .t{display:none}
   .toc{position:static;display:flex;overflow-x:auto;padding:0;scrollbar-width:none}
   .toc a{white-space:nowrap;border-right:1px solid var(--line);padding:12px 16px}
@@ -382,7 +386,7 @@ footer a:hover{color:var(--a)}
     <div class="spacer"></div>
     <div class="sec-head">
       <div class="cell"><span class="mono dim">your devices</span><h2 style="margin-top:56px">my-devices/</h2></div>
-      <div class="cell"><p>One link per device. It updates itself when nodes change. Don't share it.</p></div>
+      <div class="cell"><p>One link per device. It updates itself when nodes change. Don't share it. <a class="lime" href="#/check">Check you're on Vlana →</a></p></div>
     </div>
     <div class="stats">
       <div class="cell"><div class="mono dim">$VLANA held</div><div class="v" id="a-bal">—</div></div>
@@ -483,6 +487,47 @@ footer a:hover{color:var(--a)}
     <div class="row">
       <div class="cell"><a class="cta" href="#/node">Run a node, get SOL <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></a></div>
       <div class="cell mono dim" style="display:flex;align-items:flex-end">rare countries earn more · <a class="lime" href="#/docs#pay">&nbsp;how payouts work</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHECK ============ -->
+<section class="view" id="v-check">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim">turn the VPN on, then look</span><h2 style="margin-top:56px">check/</h2></div>
+      <div class="cell"><p>Are you on Vlana right now, and which nodes carry you. Worked out from where this page's request came from.</p></div>
+    </div>
+    <div class="stats">
+      <div class="cell"><div class="mono dim">this browser</div><div class="v" id="c-state">—</div></div>
+      <div class="cell"><div class="mono dim">sites see your IP as</div><div class="v" id="c-ip" style="font-size:22px">—</div></div>
+      <div class="cell"><div class="mono dim">exit node</div><div class="v" id="c-exit">—</div></div>
+      <div class="cell"><div class="mono dim">its operator</div><div class="v" id="c-op" style="font-size:22px">—</div></div>
+    </div>
+    <div class="row">
+      <div class="cell"><p id="c-note" class="dim">Checking…</p></div>
+      <div class="cell"><button class="cta dark" id="c-re">Check again <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></button></div>
+    </div>
+    <div class="sec-head sm"><div class="cell"><h2>chains/</h2></div><div class="cell"><p>For each of your devices: the entry you connect to, and the exit it hands you to. Entry and exit are never picked from the same operator.</p></div></div>
+    <div id="c-chains"></div>
+  </div>
+</section>
+
+<!-- ============ ROUND ============ -->
+<section class="view" id="v-round">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim" id="r-when">payout round</span><h2 style="margin-top:56px" id="r-title">round/</h2></div>
+      <div class="cell"><p>When a round closes the server writes down how it split the fees and puts a fingerprint of that on Solana, signed by the treasury. Your browser checks all of it again, here.</p></div>
+    </div>
+    <div class="ledger" id="r-steps"></div>
+    <div class="sec-head sm"><div class="cell"><h2>split/</h2></div><div class="cell"><p>Each node in the round, as the server recorded it and as your browser recomputed it.</p></div></div>
+    <div class="ledger" id="r-nodes"></div>
+    <div class="row">
+      <div class="cell"><details><summary class="mono dim" style="cursor:pointer">raw receipt</summary><pre class="mono" id="r-raw" style="white-space:pre-wrap;word-break:break-all;margin-top:14px;color:var(--dim)"></pre></details></div>
+      <div class="cell mono dim" id="r-cli"></div>
     </div>
   </div>
 </section>
@@ -680,6 +725,10 @@ footer a:hover{color:var(--a)}
   <h4>Do it yourself</h4>
   <p>Same check from a terminal. Both lines must print the same hash.</p>
   <div class="code"><code id="v-cli"></code></div>
+  <h4>Payout rounds</h4>
+  <p>Every hour the server records how it split the fees: each node's checks, who made the cut, who got how much. The sha256 of that record goes on Solana in a memo signed by the treasury, so it can't be rewritten later. Open any round on the <a class="lime" href="#/payouts">Payouts</a> page and your browser re-checks the fingerprint, the memo and the whole split.</p>
+  <h4>Your own connection</h4>
+  <p><a class="lime" href="#/check">Check</a> shows whether this browser is going through Vlana, which node you exit from and who runs it, and for each of your devices the entry → exit chain.</p>
   <h4>What this proves, and what it can't</h4>
   <ul>
     <li><b>The app</b> you sign in with, <b>the installer</b> node operators run as root and <b>the node agent</b> are exactly the public code.</li>
@@ -706,7 +755,7 @@ footer a:hover{color:var(--a)}
 
 <footer class="mono">
   <span>Vlana</span>
-  <span class="flinks"><a href="#/docs#verify" id="f-build"></a><a href="#/network">network</a><a href="#/payouts">payouts</a><a href="#/docs">docs</a><a id="f-gh" target="_blank" rel="noopener">github</a><a id="f-pump" target="_blank" rel="noopener">pump.fun</a></span>
+  <span class="flinks"><a href="#/docs#verify" id="f-build"></a><a href="#/network">network</a><a href="#/payouts">payouts</a><a href="#/check">check</a><a href="#/docs">docs</a><a id="f-gh" target="_blank" rel="noopener">github</a><a id="f-pump" target="_blank" rel="noopener">pump.fun</a></span>
 </footer>
 
 <div class="modal" id="wm">
@@ -1086,7 +1135,7 @@ async function loadPay() {
     `<div><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:18px">${esc(names[k] || k)}</span><span class="mono ${k === 'operators' ? 'lime' : 'dim'}">${v}%</span></div><div class="meter"><i style="width:${v}%"></i></div></div>`).join('');
   $('#p-rd').innerHTML = pay.rounds.length
     ? `<div class="r th"><span>round</span><span>closed</span><span>fees in · nodes paid</span><span style="text-align:right">to operators</span></div>` + pay.rounds.map(r =>
-      `<div class="r mono"><span class="dim">#${r.n}</span><span>${time(r.end)}</span><span class="dim">${sol(r.inflow)} · ${r.nodes}</span><span class="${r.pool ? 'lime' : 'mute'}" style="text-align:right">${sol(r.pool)}</span></div>`).join('')
+      (r.hash ? `<a class="r mono" href="#/round/${r.n}">` : `<div class="r mono">`) + `<span class="dim">#${r.n}</span><span>${time(r.end)}${r.memo ? ' <span class="lime">✓ on-chain</span>' : ''}</span><span class="dim">${sol(r.inflow)} · ${r.nodes}</span><span class="${r.pool ? 'lime' : 'mute'}" style="text-align:right">${sol(r.pool)}</span>` + (r.hash ? '</a>' : '</div>')).join('')
     : `<div class="empty mono">first round closes in ${left(pay.round.end - Date.now())}</div>`;
   $('#p-tx').innerHTML = pay.transfers.length
     ? `<div class="r th"><span>when</span><span>operator</span><span>tx</span><span style="text-align:right">amount</span></div>` + pay.transfers.map(p =>
@@ -1305,16 +1354,104 @@ function drawGlobe(t) {
 }
 
 // ---------- router ----------
+// ---------- check ----------
+const opLink = w => `<a class="lime" href="https://solscan.io/account/${esc(w)}" target="_blank" rel="noopener">${esc(short(w))}</a>`;
+const nodeCell = n => `<span><b style="font-weight:500">${esc(n.name)}</b> <span class="dim">${esc(regionName(n.country || '??'))} · ${opLink(n.operator)}</span></span>`;
+async function loadCheck() {
+  $('#c-state').textContent = '…';
+  const c = await api('/api/check');
+  const on = !!c.node;
+  $('#c-state').textContent = on ? 'on Vlana' : 'not on Vlana';
+  $('#c-state').className = 'v' + (on ? ' lime' : '');
+  $('#c-ip').textContent = c.ip;
+  $('#c-exit').textContent = on ? c.node.name : '—';
+  $('#c-op').innerHTML = on ? opLink(c.node.operator) : '—';
+  $('#c-note').innerHTML = on
+    ? `Websites see you in <b>${esc(regionName(c.node.country || '??'))}</b>, on ${c.node.home ? 'a home line' : 'a datacenter line'}. They can't see your real IP.`
+    : `This browser isn't going through Vlana. Turn the VPN on in Hiddify (or your client), then press <b>Check again</b>.`;
+  if (!session) {
+    $('#c-chains').innerHTML = `<div class="blank"><b>Sign in to see your chains.</b><p>Which entry and exit each of your devices uses.</p><button class="btn lime" onclick="openWallets('#/check')">Connect wallet</button></div>`;
+  } else if (!c.devices?.length) {
+    $('#c-chains').innerHTML = `<div class="blank"><b>No active devices.</b><p>Add one and it shows up here.</p><a class="btn lime" href="#/app">My devices</a></div>`;
+  } else {
+    $('#c-chains').innerHTML = c.devices.map(d => `<div class="ledger chain">
+      <div class="r th"><span>${esc(d.label || 'device')}</span><span>entry</span><span>exit</span><span style="text-align:right">hops</span></div>` +
+      (d.chains.length ? d.chains.map(ch => {
+        const here = on && (ch.exit ? ch.exit.name : ch.entry.name) === c.node.name;
+        return `<div class="r mono"><span class="${here ? 'lime' : 'dim'}">${here ? '● now' : ''}</span>${nodeCell(ch.entry)}${ch.exit ? nodeCell(ch.exit) : '<span class="dim">straight out: no node from another operator is online</span>'}<span class="${ch.exit ? 'lime' : 'dim'}" style="text-align:right">${ch.exit ? '2' : '1'}</span></div>`;
+      }).join('') : `<div class="empty mono">no nodes online</div>`) + `</div>`).join('');
+  }
+}
+$('#c-re').onclick = () => loadCheck().catch(e => toast(e.message, true));
+
+// ---------- round receipts ----------
+async function rpcCall(url, method, params) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
+  return (await r.json()).result;
+}
+// the same arithmetic the server runs in windowScores(), in the same order, so floats match exactly
+function recompute(R) {
+  const rows = R.nodes.map(x => ({ ...x, uptime: x.checks ? x.ok / x.checks : 0 }));
+  for (const r of rows) r.good = r.checks >= R.rules.minChecks && r.uptime >= R.rules.goodUptime;
+  const per = {};
+  for (const r of rows) if (r.good) per[r.country] = (per[r.country] || 0) + 1;
+  for (const r of rows) r.raw = r.good ? r.uptime * (1 / Math.sqrt(per[r.country] || 1)) * (r.home ? R.rules.homeBonus : 1) : 0;
+  // "counted" also applies the one-node-per-/24 rule, which needs IPs the receipt leaves out; the rest is checked here
+  const perOp = {};
+  let rules = true;
+  for (const r of rows) if (r.counted) { perOp[r.wallet] = (perOp[r.wallet] || 0) + 1; if (!r.good || perOp[r.wallet] > R.rules.maxPerOperator) rules = false; }
+  const total = rows.reduce((s, r) => s + (r.counted ? r.raw : 0), 0);
+  for (const r of rows) {
+    r.share2 = r.counted && total ? r.raw / total : 0;
+    r.amount2 = r.share2 > 0 ? Math.floor(R.pool * r.share2 * 1e9) / 1e9 : 0;
+    r.match = Math.abs(r.share2 - r.share) < 1e-12 && Math.abs(r.amount2 - r.amount) < 1e-12;
+  }
+  return { rows, rules };
+}
+async function loadRound(n) {
+  $('#r-title').textContent = `round/${n || ''}`;
+  const steps = [];
+  const draw = () => $('#r-steps').innerHTML = `<div class="r th"><span>check</span><span></span><span></span><span style="text-align:right">result</span></div>` +
+    steps.map(s => `<div class="r mono"><span class="${s.ok === true ? 'lime' : s.ok === false ? '' : 'dim'}">${s.ok === true ? '✓' : s.ok === false ? '✗' : '…'}</span><span>${s.t}</span><span class="dim">${s.d || ''}</span><span style="text-align:right" class="${s.ok === true ? 'lime' : 'dim'}">${s.ok === true ? 'pass' : s.ok === false ? 'FAIL' : 'pending'}</span></div>`).join('');
+  const step = (t, ok, d) => { steps.push({ t, ok, d }); draw(); };
+  $('#r-nodes').innerHTML = ''; $('#r-raw').textContent = ''; $('#r-cli').textContent = '';
+  let d;
+  try { d = await api(`/api/rounds/${n}`); } catch (e) { steps.length = 0; step('Receipt for this round', false, esc(e.message)); return; }
+  const R = JSON.parse(d.receipt);
+  $('#r-when').textContent = `${time(R.start)} → ${time(R.end)}`;
+  const h = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(d.receipt)));
+  step('Receipt matches its fingerprint', h === d.hash, `sha256 ${h.slice(0, 16)}…`);
+  if (!d.memo) step('Fingerprint is on Solana', null, 'not posted yet. The treasury posts it once it can pay the network fee.');
+  else {
+    const tx = await rpcCall(d.rpc, 'getTransaction', [d.memo, { encoding: 'json', commitment: 'confirmed', maxSupportedTransactionVersion: 0 }]).catch(() => null);
+    const logs = tx?.meta?.logMessages || [];
+    const link = `<a class="lime" href="https://solscan.io/tx/${esc(d.memo)}" target="_blank" rel="noopener">${esc(short(d.memo))} ↗</a>`;
+    step('Fingerprint is on Solana', !!tx && !tx.meta.err && logs.some(l => l.includes(`"vlana:r${R.round}:${d.hash}"`)), tx ? `${link} · ${time(tx.blockTime * 1000)}` : `${link} · RPC didn't return it`);
+    step('Signed by the treasury', logs.includes(`Program log: Signed by ${d.treasury}`), d.treasury ? opLink(d.treasury) : '—');
+  }
+  step('Pool = fees in × operators’ % + carry', Math.abs(R.inflow * R.operatorsPct / 100 + R.carry - R.pool) < 1e-9, `${sol(R.inflow)} × ${R.operatorsPct}% + ${sol(R.carry)} = ${sol(R.pool)}`);
+  const { rows, rules } = recompute(R);
+  step('Only good nodes paid, max ' + R.rules.maxPerOperator + ' per operator', rules, `good = ${R.rules.minChecks}+ checks, ${pct(R.rules.goodUptime)}+ passed`);
+  step('Split recomputed in your browser', rows.every(r => r.match), `${rows.filter(r => r.counted).length} of ${rows.length} nodes paid`);
+  $('#r-nodes').innerHTML = `<div class="r th"><span>node</span><span>checks passed</span><span>operator</span><span style="text-align:right">paid</span></div>` + (rows.length ? rows.map(r =>
+    `<div class="r mono"><span>${esc(r.name)}</span><span class="${r.good ? '' : 'dim'}">${r.ok}/${r.checks} · ${r.checks ? pct(r.uptime) : '—'}${r.home ? ' · home' : ''}${r.counted ? '' : ' · not paid'}</span><span>${opLink(r.wallet)}</span><span style="text-align:right" class="${r.match ? (r.amount ? 'lime' : 'mute') : ''}">${r.match ? sol(r.amount) : `✗ ${sol(r.amount)} ≠ ${sol(r.amount2)}`}</span></div>`).join('')
+    : `<div class="empty mono">no nodes this round</div>`);
+  $('#r-raw').textContent = d.receipt;
+  $('#r-cli').innerHTML = `From a terminal:<br><code>curl -s ${location.origin}/api/rounds/${R.round} | jq -j .receipt | sha256sum</code>`;
+}
+
 async function route() {
   const [h, anchor] = location.hash.split('#').slice(1);
-  let view = h?.startsWith('/app') ? 'app' : h?.startsWith('/node') ? 'node' : h?.startsWith('/docs') ? 'docs' : h?.startsWith('/network') ? 'net' : h?.startsWith('/payouts') ? 'pay' : 'home';
+  let view = h?.startsWith('/app') ? 'app' : h?.startsWith('/node') ? 'node' : h?.startsWith('/docs') ? 'docs' : h?.startsWith('/network') ? 'net' : h?.startsWith('/payouts') ? 'pay' : h?.startsWith('/check') ? 'check' : h?.startsWith('/round') ? 'round' : 'home';
   if (view === 'home' && session) { history.replaceState(null, '', '#/app'); view = 'app'; }
   renderWallet();
-  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.v === view));
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.v === (view === 'round' ? 'pay' : view)));
   if ((view === 'app' || view === 'node') && !session) { show('home'); openWallets('#' + h); return; }
   show(view);
   if (view === 'net') { initGlobe(); return; }
   if (view === 'pay') { loadPay().catch(e => toast(e.message, true)); return; }
+  if (view === 'check') { loadCheck().catch(e => toast(e.message, true)); return; }
+  if (view === 'round') { loadRound(+h.split('/')[2]).catch(e => toast(e.message, true)); return; }
   if (view === 'docs') { verify(); if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView()); return; }
   try {
     if (view === 'app') await loadMe();

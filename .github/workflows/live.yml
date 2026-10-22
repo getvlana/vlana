@@ -1,0 +1,20 @@
+name: live
+
+# every hour: does go.vlana.app serve exactly this repo, and are its payout rounds on-chain as receipted
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/verify-live.mjs https://go.vlana.app

@@ -1,6 +1,6 @@
 # Vlana
 
-[![e2e](../../actions/workflows/e2e.yml/badge.svg)](../../actions/workflows/e2e.yml)
+[![e2e](../../actions/workflows/e2e.yml/badge.svg)](../../actions/workflows/e2e.yml) [![live](../../actions/workflows/live.yml/badge.svg)](../../actions/workflows/live.yml)
 
 **VPN without an account. Your wallet is the login.**
 
@@ -80,6 +80,30 @@ curl -s https://go.vlana.app/install.sh | sha256sum
 curl -s https://raw.githubusercontent.com/getvlana/vlana/$C/app/node/install.sh | sha256sum
 ```
 
+The **live** badge above does this every hour from GitHub's side: [`tools/verify-live.mjs`](tools/verify-live.mjs) downloads every file go.vlana.app serves and compares it with this repo at the commit the server claims. Run it yourself:
+
+```sh
+git clone https://github.com/getvlana/vlana && cd vlana && node tools/verify-live.mjs
+```
+
+## Payout receipts on-chain
+
+When a round closes, the server writes a receipt: fees in, the pool, and for every node its checks, whether it made the cut, its share and the amount. The receipt's SHA-256 goes on Solana in a memo signed by the treasury (`vlana:r<round>:<sha256>`), so a round can't be rewritten after the fact.
+
+- `GET /api/rounds/<n>` returns the exact receipt text, its hash and the memo transaction.
+- Any round on the **Payouts** page opens a page where your browser checks the hash, finds the memo on Solana, checks it was signed by the treasury and redoes the whole split.
+- `tools/verify-live.mjs` checks the last rounds the same way, every hour.
+
+```sh
+curl -s https://go.vlana.app/api/rounds/<n> | jq -j .receipt | sha256sum   # equals the hash in the memo
+```
+
+The one rule the receipt can't prove on its own is "one paid node per /24": it would need node IPs, and those stay private.
+
+## Am I on Vlana?
+
+`go.vlana.app/#/check` looks at where the request came from. With the VPN on, it names the exit node and its operator. Signed in, it lists every device's chains: which entry you connect to and which exit it hands you to, always from a different operator, or `1 hop` when no other operator is online. Exits leave over IPv4, so the address a site sees is the one the node registered.
+
 ## Checkers can't be gamed
 
 A node could try to serve checks well and real users badly. It can't tell them apart:
@@ -116,6 +140,7 @@ MINT=<token mint> PUBLIC_URL=https://go.vlana.app ADMIN_KEY=... PROBE_KEY=... no
 | `PUBLIC_URL` | `http://localhost:$PORT` | used in install commands and subscription links |
 | `DATA_DIR` | `app/data` | SQLite database and secrets |
 | `MINT` | | `$VLANA` mint address. Balances are read from `RPC_URL`. |
+| `PUBLIC_RPC` | mainnet-beta | Solana RPC handed to browsers that verify rounds. Keep keyed RPCs in `RPC_URL` only |
 | `RPC_URL` | mainnet-beta | Solana RPC |
 | `DEV_FREE` | | `1` with no `MINT`: everyone gets a dev plan |
 | `TIERS` | 4 plans | JSON, see `server.js` |
