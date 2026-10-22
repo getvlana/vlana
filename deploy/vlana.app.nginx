@@ -69,7 +69,15 @@ server {
     index index.html;
     location / { try_files $uri $uri/ =404; }
     location ~ ^/legal/([a-z-]+)/?$ { try_files /subpages/legal_$1.html =404; }
-    location ~* \.(mjs|js|css|woff2?|ttf|otf|png|jpe?g|webp|avif|svg|gif|mp4|webm|json)$ {
+    # stock mime.types has no .mjs; browsers refuse modules served as octet-stream
+    location ~* \.mjs$ {
+        types { }
+        default_type text/javascript;
+        expires 7d;
+        add_header Cache-Control "public";
+        try_files $uri =404;
+    }
+    location ~* \.(js|css|woff2?|ttf|otf|png|jpe?g|webp|avif|svg|gif|mp4|webm|json)$ {
         expires 7d;
         add_header Cache-Control "public";
         try_files $uri =404;
