@@ -99,6 +99,10 @@ h3{font:400 26px/1.15 Geist,sans-serif;letter-spacing:-.01em}
 .cta.dark{background:var(--raise);color:var(--ink);border:1px solid var(--line2)}
 .cta.dark:hover{border-color:var(--dim)}
 .cta svg{width:14px;height:14px;flex:none}
+.ca{display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;padding:11px 16px;border:1px solid var(--line2);border-radius:4px;color:var(--dim);text-align:left;transition:border-color .15s}
+.ca b{flex:1;width:0;font-weight:400;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ca i{font-style:normal;color:var(--a);margin-left:auto}
+.ca:not(:disabled):hover{border-color:var(--a)}
 
 /* steps */
 .steps{display:grid;grid-template-columns:repeat(var(--n,3),1fr);border-top:1px solid var(--line)}
@@ -357,7 +361,7 @@ footer a:hover{color:var(--a)}
     </div>
     <div class="row">
       <div class="cell"><button class="cta" id="c-go">Connect wallet <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></button></div>
-      <div class="cell"><a class="cta dark" id="buy" target="_blank" rel="noopener">Buy $VLANA <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></a></div>
+      <div class="cell"><a class="cta dark" id="buy" target="_blank" rel="noopener">Buy $VLANA <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></a><button class="ca mono" id="ca" disabled>CA: <b>coming soon</b></button></div>
     </div>
     <div class="steps">
       <div class="step"><span class="mono">01</span><h3>Hold $VLANA</h3><p>Your balance is your plan. More tokens, more devices and traffic.</p></div>
@@ -836,6 +840,8 @@ async function loadNet() {
   const pump = net.mint ? `https://pump.fun/coin/${net.mint}` : null;
   for (const a of [$('#buy'), $('#f-pump')]) { if (pump) { a.href = pump; a.style.opacity = ''; } else { a.removeAttribute('href'); a.style.opacity = .5; } }
   if (!pump) $('#buy').firstChild.textContent = '$VLANA · soon ';
+  const ca = $('#ca');
+  if (net.mint) { ca.disabled = false; ca.title = 'Copy contract address'; ca.innerHTML = `CA: <b>${esc(net.mint)}</b><i>copy</i>`; ca.onclick = () => copy(net.mint, 'address copied'); }
   for (const a of [$('#f-gh'), $('#d-gh')]) { if (net.repo) a.href = net.repo; else a.style.display = 'none'; }
   renderTiers(); renderDocs(); setGlobeNodes();
 }
