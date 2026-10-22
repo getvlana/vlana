@@ -143,6 +143,8 @@ MINT=<token mint> PUBLIC_URL=https://go.vlana.app ADMIN_KEY=... PROBE_KEY=... no
 | `PUBLIC_RPC` | mainnet-beta | Solana RPC handed to browsers that verify rounds. Keep keyed RPCs in `RPC_URL` only |
 | `RPC_URL` | mainnet-beta | Solana RPC |
 | `DEV_FREE` | | `1` with no `MINT`: everyone gets a dev plan |
+| `FREE_UNTIL` | | ISO date. Until then wallets below the lowest plan still get a `free` plan |
+| `FREE_TIER` | `{"devices":1,"gb":10,"home":false}` | what the free plan includes |
 | `TIERS` | 4 plans | JSON, see `server.js` |
 | `SPLIT` | `{"operators":100}` | each round's fees by share, in %. Anything not for operators stays in the treasury |
 | `PAYER_KEY` | | base58 secret key of the treasury wallet that collects creator fees. Set it and payouts are automatic. |

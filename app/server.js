@@ -42,6 +42,10 @@ const TIERS = JSON.parse(process.env.TIERS || JSON.stringify([
   { name: 'base', min: 100_000, devices: 2, gb: 100, home: false, perks: [] },
 ]));
 const DEV_TIER = { name: 'dev', min: 0, devices: 3, gb: 50, home: true, perks: [] };
+// launch window: wallets without enough $VLANA still get a small plan until this date
+const FREE_UNTIL = Date.parse(process.env.FREE_UNTIL || '') || 0;
+const FREE_TIER = { name: 'free', min: 0, devices: 1, gb: 10, home: false, perks: [], ...JSON.parse(process.env.FREE_TIER || '{}') };
+const freeOpen = () => now() < FREE_UNTIL;
 // how each round's creator fees are split, percent; operators' part is paid out automatically
 const SPLIT = JSON.parse(process.env.SPLIT || '{"operators":100}');
 
@@ -240,7 +244,7 @@ async function refreshBalance(wallet, force) {
     return w ? w.balance : 0;
   }
 }
-const tierFor = balance => (!MINT && DEV_FREE) ? DEV_TIER : (TIERS.find(t => balance >= t.min) || null);
+const tierFor = balance => (!MINT && DEV_FREE) ? DEV_TIER : (TIERS.find(t => balance >= t.min) || (freeOpen() ? FREE_TIER : null));
 
 // keys that currently get access: within the wallet's device limit and monthly cap
 function activeKeys() {
@@ -544,7 +548,7 @@ function meView(wallet) {
   const m = month();
   const active = new Set(activeKeys().filter(k => k.wallet === wallet).map(k => k.id));
   return {
-    wallet, balance: w.balance, mint: MINT, tier, tiers: TIERS, devFree: !MINT && DEV_FREE,
+    wallet, balance: w.balance, mint: MINT, tier, tiers: TIERS, devFree: !MINT && DEV_FREE, freeUntil: freeOpen() ? FREE_UNTIL : 0,
     keys: q.keysOf.all(wallet).map(k => ({
       id: k.id, label: k.label, created: k.created, active: active.has(k.id),
       used: k.month === m ? k.used : 0, cap: tier ? tier.gb * GB : 0,

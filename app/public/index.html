@@ -981,7 +981,7 @@ async function loadMe(refresh) {
   $('#a-dev').textContent = t ? `${me.keys.length} / ${t.devices}` : '—';
   $('#a-used').textContent = t ? `${gb(me.keys.reduce((s, k) => s + k.used, 0))} GB` : '—';
   const min = Math.min(...(me.tiers.length ? me.tiers.map(x => x.min) : [0]));
-  $('#a-gate').innerHTML = t ? '' : `<div class="note"><p>Hold ${fmt(min)} $VLANA to get in. Your devices turn on by themselves once you do.</p>
+  $('#a-gate').innerHTML = t ? (t.name === 'free' ? `<div class="note"><p>Free until ${new Date(me.freeUntil).toUTCString().slice(5, 22)} UTC: ${t.devices} device, ${t.gb} GB. Hold ${fmt(min)} $VLANA to keep access after that.</p>${me.mint ? `<div class="form"><a class="btn lime" target="_blank" rel="noopener" href="https://pump.fun/coin/${esc(me.mint)}">Buy $VLANA ${ARROW}</a></div>` : ''}</div>` : '') : `<div class="note"><p>Hold ${fmt(min)} $VLANA to get in. Your devices turn on by themselves once you do.</p>
     <div class="form"><button class="btn ghost" id="a-ref">I bought, refresh</button>${me.mint ? `<a class="btn lime" target="_blank" rel="noopener" href="https://pump.fun/coin/${esc(me.mint)}">Buy $VLANA ${ARROW}</a>` : ''}</div></div>`;
   if ($('#a-ref')) $('#a-ref').onclick = () => loadMe(true).then(() => toast('balance updated')).catch(e => toast(e.message, true));
   if (net) renderTiers();
