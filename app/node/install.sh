@@ -26,7 +26,10 @@ if ss -ltn "sport = :$PORT" 2>/dev/null | grep -q LISTEN && ! systemctl is-activ
 fi
 
 echo "→ xray"
-bash -c "$(curl -fsSL https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install >/dev/null
+# the official script skips everything, the service included, when an xray binary is already present
+FORCE=""; systemctl cat xray >/dev/null 2>&1 || FORCE="--force"
+bash -c "$(curl -fsSL https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install $FORCE >/dev/null
+systemctl cat xray >/dev/null 2>&1 || { echo "xray service was not installed. see https://github.com/XTLS/Xray-install"; exit 1; }
 
 echo "→ agent"
 mkdir -p /opt/vlana /etc/vlana
