@@ -494,8 +494,8 @@ const nodeAuth = req => {
 };
 const keyOk = (req, header, key) => key && req.headers[header] && crypto.timingSafeEqual(Buffer.from(sha(String(req.headers[header]))), Buffer.from(sha(key)));
 
-// install.sh is served byte for byte as in the repo; it defaults to vlana.app, other deployments pass their URL
-const installCmd = t => PUBLIC_URL === 'https://vlana.app'
+// install.sh is served byte for byte as in the repo; it defaults to go.vlana.app, other deployments pass their URL
+const installCmd = t => PUBLIC_URL === 'https://go.vlana.app'
   ? `curl -fsSL ${PUBLIC_URL}/install.sh | sudo bash -s ${t}`
   : `curl -fsSL ${PUBLIC_URL}/install.sh | sudo VLANA_SERVER=${PUBLIC_URL} bash -s ${t}`;
 

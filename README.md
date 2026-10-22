@@ -65,18 +65,18 @@ The network runs in one-hour rounds. When a round closes:
 Any SOL that lands in the treasury counts as fees. The treasury never needs topping up (fees cover transaction costs), but if you do send SOL to it, announce it first so it isn't paid out:
 
 ```sh
-curl -X POST https://vlana.app/api/admin/topup -H "x-admin-key: $ADMIN_KEY" -d '{"sol": 0.5}'
+curl -X POST https://go.vlana.app/api/admin/topup -H "x-admin-key: $ADMIN_KEY" -d '{"sol": 0.5}'
 ```
 
 Checkers' and buyback shares stay in the treasury. Without `PAYER_KEY` the server runs the same math and keeps balances owed; you add fees with `POST /api/admin/inflow` and record transfers with `POST /api/admin/payouts`.
 
 ## Verify the live site
 
-`https://vlana.app/api/version` returns the commit the server runs and SHA-256 of the files it serves to you: the app, `install.sh` and `agent.py`. They are served byte for byte from this repo. The **Docs → Verify** page compares them in your browser against `raw.githubusercontent.com` at that commit, or do it by hand:
+`https://go.vlana.app/api/version` returns the commit the server runs and SHA-256 of the files it serves to you: the app, `install.sh` and `agent.py`. They are served byte for byte from this repo. The **Docs → Verify** page compares them in your browser against `raw.githubusercontent.com` at that commit, or do it by hand:
 
 ```sh
-C=$(curl -s https://vlana.app/api/version | python3 -c 'import json,sys;print(json.load(sys.stdin)["commit"])')
-curl -s https://vlana.app/install.sh | sha256sum
+C=$(curl -s https://go.vlana.app/api/version | python3 -c 'import json,sys;print(json.load(sys.stdin)["commit"])')
+curl -s https://go.vlana.app/install.sh | sha256sum
 curl -s https://raw.githubusercontent.com/getvlana/vlana/$C/app/node/install.sh | sha256sum
 ```
 
@@ -107,7 +107,7 @@ Node.js 22.5+.
 
 ```sh
 cd app
-MINT=<token mint> PUBLIC_URL=https://vlana.app ADMIN_KEY=... PROBE_KEY=... node server.js
+MINT=<token mint> PUBLIC_URL=https://go.vlana.app ADMIN_KEY=... PROBE_KEY=... node server.js
 ```
 
 | env | default | |
@@ -134,7 +134,7 @@ MINT=<token mint> PUBLIC_URL=https://vlana.app ADMIN_KEY=... PROBE_KEY=... node 
 
 ## Deploy
 
-Everything runs on one domain: **https://vlana.app** — the app, docs, subscriptions, node installer and API. Ubuntu, Node.js 22.13+, nginx, certbot:
+**https://vlana.app** is the landing page, **https://go.vlana.app** is the app: docs, subscriptions, node installer and API. `vlana.app` also forwards `/api/`, `/sub/`, `/install.sh` and `/agent.py` to the app, so older links keep working. Ubuntu, Node.js 22.13+, nginx, certbot:
 
 ```sh
 useradd --system --no-create-home --shell /usr/sbin/nologin vlana
@@ -145,17 +145,17 @@ cp deploy/vlana.service deploy/vlana-probe.service /etc/systemd/system/
 echo "PROBE_KEY=<same as in vlana.env>" > /etc/vlana-probe.env
 systemctl enable --now vlana vlana-probe
 cp deploy/vlana.app.nginx /etc/nginx/sites-available/vlana.app && ln -s ../sites-available/vlana.app /etc/nginx/sites-enabled/
-certbot certonly --webroot -w /var/www/vlana-acme -d vlana.app && systemctl reload nginx
+certbot certonly --webroot -w /var/www/vlana-acme -d vlana.app -d go.vlana.app && systemctl reload nginx
 ```
 
-The checker needs `xray` in `/usr/local/bin` and its geo files in `/usr/local/share/xray`. DNS: one A record, `vlana.app` → the server.
+The checker needs `xray` in `/usr/local/bin` and its geo files in `/usr/local/share/xray`. DNS: `vlana.app` and `go.vlana.app` → the server.
 
 ## Run a node
 
 Sign in to the app, open **Nodes**, press **Add a node** and run the command it gives you on a fresh Ubuntu/Debian server:
 
 ```sh
-curl -fsSL https://vlana.app/install.sh | sudo bash -s <token>
+curl -fsSL https://go.vlana.app/install.sh | sudo bash -s <token>
 ```
 
 Options: `PORT=8443`, `SNI=www.microsoft.com` before `bash`. Logs: `journalctl -u vlana-agent -f`.
@@ -163,7 +163,7 @@ Options: `PORT=8443`, `SNI=www.microsoft.com` before `bash`. Logs: `journalctl -
 ## Run a checker
 
 ```sh
-SERVER=https://vlana.app PROBE_KEY=... PROBE_ID=fra-1 node app/probe/probe.js
+SERVER=https://go.vlana.app PROBE_KEY=... PROBE_ID=fra-1 node app/probe/probe.js
 ```
 
 Needs `xray` and `curl` in `PATH`. Run several, from different networks than the control server.

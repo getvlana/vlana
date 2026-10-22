@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Vlana node installer: xray (REALITY) + agent. Debian/Ubuntu/RHEL.
-# usage: curl -fsSL https://vlana.app/install.sh | sudo bash -s <enroll-token>
+# usage: curl -fsSL https://go.vlana.app/install.sh | sudo bash -s <enroll-token>
 #        PORT=8443 SNI=www.example.com ... to override defaults
 #        VLANA_SERVER=https://your.deployment for a self-hosted control plane
 set -euo pipefail
-SERVER="${VLANA_SERVER:-https://vlana.app}"
+SERVER="${VLANA_SERVER:-https://go.vlana.app}"
 TOKEN="${1:-}"
 PORT="${PORT:-443}"
 SNI="${SNI:-dl.google.com}"
