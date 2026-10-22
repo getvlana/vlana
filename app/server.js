@@ -339,7 +339,13 @@ async function settle(r) {
   if (PAYER) {
     const bal = await solBalance(PAYER.address);
     const base = kv('baseline', null);
-    if (base !== null) inflow += Math.max(0, bal - base);
+    if (base !== null) {
+      // SOL you announced as a top-up (POST /api/admin/topup) is not fees: skip it once it lands
+      let fresh = Math.max(0, bal - base);
+      const skip = Math.min(kv('topup', 0), fresh);
+      if (skip > 0) { kvSet('topup', kv('topup', 0) - skip); fresh -= skip; }
+      inflow += fresh;
+    }
     kvSet('baseline', bal);
   }
   const pool = inflow * (SPLIT.operators ?? 100) / 100 + kv('carry', 0);
@@ -375,7 +381,8 @@ async function tick() {
   try {
     const cur = roundOf(now());
     let last = kv('lastRound', null);
-    if (last === null) { last = cur - 1; kvSet('lastRound', last); }
+    // first start, or back after a long outage: don't replay ancient rounds; unpaid fees are still above the baseline
+    if (last === null || cur - last > 48) { last = cur - 1; kvSet('lastRound', last); }
     for (let r = last + 1; r < cur; r++) { await settle(r); kvSet('lastRound', r); }
   } catch (e) { console.error('settle:', e.message); } finally { settling = false; }
 }
@@ -729,7 +736,7 @@ async function route(req, res) {
         status: r.node.status, uptime: r.uptime, checks: r.checks, good: r.good, rarity: r.rarity, latency: r.latency, mbps: r.mbps, counted: r.counted, share: r.share,
       }));
       return send(res, 200, {
-        round: rd, treasury: PAYER?.address || null, baseline: kv('baseline', null), carry: kv('carry', 0), lastRound: kv('lastRound', null),
+        round: rd, treasury: PAYER?.address || null, baseline: kv('baseline', null), carry: kv('carry', 0), topup: kv('topup', 0), lastRound: kv('lastRound', null),
         scores, owed: q.owedDue.all(0), rounds: q.roundsRecent.all(24),
         nodes: q.nodesAll.all().map(n => ({ id: n.id, name: nodeName(n), operator: n.operator, status: n.status, ip: n.ip, port: n.port, country: n.country, home: !!n.home, version: n.version, last_seen: n.last_seen })),
       });
@@ -756,6 +763,12 @@ async function route(req, res) {
       if (!(+sol > 0)) return send(res, 400, { error: 'sol > 0 required' });
       kvSet('manualInflow', kv('manualInflow', 0) + +sol);
       return send(res, 200, { manualInflow: kv('manualInflow', 0) });
+    }
+    if (m === 'POST' && p === '/api/admin/topup') {
+      const { sol } = await readBody(req, 4e3);
+      if (!(+sol > 0)) return send(res, 400, { error: 'sol > 0 required' });
+      kvSet('topup', kv('topup', 0) + +sol);
+      return send(res, 200, { topup: kv('topup', 0) });
     }
     if (m === 'POST' && p === '/api/admin/payouts') {
       const { wallet, amount, tx } = await readBody(req, 4e3);

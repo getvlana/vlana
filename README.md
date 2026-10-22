@@ -62,6 +62,12 @@ The network runs in one-hour rounds. When a round closes:
 2. A node makes the cut if it passed **95%** of at least **6** checks in that hour. Weight = rarity (1/√ good nodes in its country) × 1.5 for home lines. Max 3 paid nodes per wallet, one per /24.
 3. The server signs one Solana transaction with a transfer to every operator and sends it. Amounts under 0.001 SOL carry over to the next payout. If nobody makes the cut, the pool rolls into the next round.
 
+Any SOL that lands in the treasury counts as fees. The treasury never needs topping up (fees cover transaction costs), but if you do send SOL to it, announce it first so it isn't paid out:
+
+```sh
+curl -X POST https://vlana.app/api/admin/topup -H "x-admin-key: $ADMIN_KEY" -d '{"sol": 0.5}'
+```
+
 Checkers' and buyback shares stay in the treasury. Without `PAYER_KEY` the server runs the same math and keeps balances owed; you add fees with `POST /api/admin/inflow` and record transfers with `POST /api/admin/payouts`.
 
 ## Verify the live site
