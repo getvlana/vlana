@@ -259,6 +259,8 @@ h3{font:400 26px/1.15 Geist,sans-serif;letter-spacing:-.01em}
 .srow.on{box-shadow:inset 2px 0 0 var(--a)}
 .srow b{font-weight:500;font-size:16px;display:block}
 .srow .r{text-align:right}
+.sdet{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;padding:4px var(--pad) 16px 44px;background:var(--panel);border-bottom:1px solid var(--line);box-shadow:inset 2px 0 0 var(--a)}
+.sdet>span:nth-child(even){text-align:right}
 
 footer{max-width:calc(var(--w) + 2*var(--pad));margin:0 auto;padding:0 var(--pad) 40px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--mute)}
 footer a:hover{color:var(--a)}
@@ -1113,10 +1115,26 @@ function setGlobeNodes() {
   $('#n-cc').textContent = new Set(on.map(n => n.country)).size;
   $('#n-home').textContent = on.filter(n => n.home).length;
   $('#n-lat').textContent = lat.length ? Math.round(lat.reduce((s, n) => s + n.latency, 0) / lat.length) + 'ms' : '—';
+  if (G.sel) G.sel = G.nodes.find(n => n.name === G.sel.name) || null;
+  renderSlist();
+}
+function nodeDetail(n) {
+  const row = (k, v) => `<span class="dim">${k}</span><span>${v}</span>`;
+  return `<div class="sdet mono">${[
+    row('operator', n.operator ? `<a class="lime" href="https://solscan.io/account/${esc(n.operator)}" target="_blank" rel="noopener">${esc(short(n.operator))} ↗</a>${n.opNodes > 1 ? ` · ${n.opNodes} nodes` : ''}` : '—'),
+    row('line', n.home ? 'home' : 'datacenter'),
+    row('uptime 24h', n.checks ? `${pct(n.uptime)} <span class="dim">of ${n.checks} checks</span>` : 'no checks yet'),
+    row('speed', `${n.latency ? n.latency + 'ms' : '—'} · ${n.mbps ? n.mbps + ' Mbps' : '—'}`),
+    row('last seen', n.seen ? ago(n.seen) : '—'),
+    row('running since', n.since ? time(n.since) : '—'),
+    row('earned', n.rounds ? `${sol(n.earned)} <span class="dim">in ${n.rounds} rounds</span>` : '—'),
+  ].join('')}</div>`;
+}
+function renderSlist() {
   $('#slist').innerHTML = `<div class="h mono"><span>servers/</span><span class="dim">${G.nodes.length}</span></div>` + (G.nodes.length ? G.nodes.map((n, i) => `
     <div class="srow${n === G.sel ? ' on' : ''}" data-i="${i}"><span class="dot${n.online ? '' : ' off'}"></span>
       <div><b>${esc(n.name)}${n.home ? ' <span class="tag o">home</span>' : ''}</b><span class="mono dim">${esc(regionName(n.country || '??'))}</span></div>
-      <div class="r mono"><div>${n.online ? pct(n.uptime) : 'offline'}</div><div class="dim">${n.latency ? n.latency + 'ms' : '—'}</div></div></div>`).join('')
+      <div class="r mono"><div>${n.online ? pct(n.uptime) : 'offline'}</div><div class="dim">${n.latency ? n.latency + 'ms' : '—'}</div></div></div>${n === G.sel ? nodeDetail(n) : ''}`).join('')
     : `<div class="blank" style="border:0"><b>No servers yet.</b><p>Be the first node on the map.</p></div>`);
 }
 $('#slist').onclick = e => { const r = e.target.closest('.srow'); if (r) selectNode(G.nodes[+r.dataset.i]); };
@@ -1124,7 +1142,7 @@ $('#slist').onmouseover = e => { const r = e.target.closest('.srow'); G.hover = 
 $('#slist').onmouseleave = () => { G.hover = null; };
 function selectNode(n) {
   G.sel = n === G.sel ? null : n;
-  document.querySelectorAll('.srow').forEach(r => r.classList.toggle('on', G.nodes[+r.dataset.i] === G.sel));
+  renderSlist();
   if (G.sel && matchMedia('(max-width:900px)').matches) $('#globe').scrollIntoView({ behavior: 'smooth', block: 'center' });
   if (G.sel?.ll) G.tween = { from: [...G.rot], to: [-G.sel.ll[0], Math.max(-60, Math.min(60, -G.sel.ll[1]))], t0: performance.now() };
 }

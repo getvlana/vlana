@@ -132,6 +132,7 @@ const q = {
   payoutsOf: db.prepare(`SELECT * FROM payouts WHERE wallet=? ORDER BY paid_at DESC LIMIT 200`),
   payoutsPaid: db.prepare(`SELECT * FROM payouts ORDER BY paid_at DESC LIMIT 50`),
   paidAll: db.prepare(`SELECT * FROM payouts ORDER BY paid_at DESC LIMIT 500`),
+  earnedByNode: db.prepare(`SELECT node, SUM(amount) s, COUNT(*) n FROM earnings GROUP BY node`),
   paidTotal: db.prepare(`SELECT COALESCE(SUM(amount),0) s, COUNT(*) n, COUNT(DISTINCT wallet) ops FROM payouts`),
   paidBy: db.prepare(`SELECT COALESCE(SUM(amount),0) s FROM payouts WHERE wallet=?`),
   payoutIns: db.prepare(`INSERT INTO payouts(round,wallet,amount,tx,created,paid_at) VALUES(?,?,?,?,?,?)`),
@@ -541,9 +542,18 @@ function networkView() {
   const online = onlineSet();
   const day = q.probeStats.all(now() - 86400e3, now() + 1);
   const st = new Map(day.map(r => [r.node, r]));
-  const nodes = q.nodesLive.all().filter(n => n.pbk).map(n => {
+  const earned = new Map(q.earnedByNode.all().map(r => [r.node, r]));
+  const live = q.nodesLive.all().filter(n => n.pbk);
+  const opNodes = op => live.filter(x => x.operator === op).length;
+  const nodes = live.map(n => {
     const s = st.get(n.id) || { total: 0, ok: 0 };
-    return { name: nodeName(n), country: n.country, home: !!n.home, online: online.has(n.id) && n.status === 'active', uptime: s.total ? s.ok / s.total : 0, latency: s.latency ? Math.round(s.latency) : null };
+    const e = earned.get(n.id) || { s: 0, n: 0 };
+    return {
+      name: nodeName(n), country: n.country, home: !!n.home, online: online.has(n.id) && n.status === 'active', uptime: s.total ? s.ok / s.total : 0, latency: s.latency ? Math.round(s.latency) : null,
+      // operator wallets are public anyway: they are the payout recipients
+      operator: n.operator, opNodes: opNodes(n.operator), checks: s.total, mbps: s.mbps ? Math.round(s.mbps * 10) / 10 : null,
+      since: n.created, seen: n.last_seen, earned: e.s, rounds: e.n,
+    };
   });
   return {
     round: roundInfo(),
