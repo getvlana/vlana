@@ -1,0 +1,23 @@
+name: e2e
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  two-hop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: syntax
+        run: |
+          node --check app/server.js
+          node --check app/probe/probe.js
+          python3 -m py_compile app/node/agent.py
+          bash -n app/node/install.sh e2e/run.sh
+      - name: two operators, two nodes, real xray, real traffic
+        run: e2e/run.sh

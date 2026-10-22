@@ -1,0 +1,20 @@
+[Unit]
+Description=Vlana control plane
+After=network.target
+
+[Service]
+User=vlana
+Group=vlana
+EnvironmentFile=/etc/vlana.env
+WorkingDirectory=/opt/vlana
+ExecStart=/usr/bin/node --no-warnings /opt/vlana/server.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/vlana
+
+[Install]
+WantedBy=multi-user.target

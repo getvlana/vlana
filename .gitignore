@@ -1,0 +1,6 @@
+app/data/
+node_modules/
+*.db
+*.db-*
+templates/
+__pycache__/

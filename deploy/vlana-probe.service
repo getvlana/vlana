@@ -1,0 +1,19 @@
+[Unit]
+Description=Vlana checker (probes nodes through real tunnels)
+After=vlana.service
+
+[Service]
+User=vlana
+Group=vlana
+Environment=SERVER=http://127.0.0.1:8792 PROBE_ID=vps1 XRAY_BIN=/usr/local/bin/xray XRAY_LOCATION_ASSET=/usr/local/share/xray
+EnvironmentFile=/etc/vlana-probe.env
+ExecStart=/usr/bin/node --no-warnings /opt/vlana/probe/probe.js
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

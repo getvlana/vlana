@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vlana</title>
+<meta name="description" content="VPN without an account. Your wallet is the login.">
+<meta name="theme-color" content="#121212">
+<link rel="canonical" href="https://vlana.app/">
+<meta property="og:title" content="Vlana">
+<meta property="og:description" content="VPN without an account. Your wallet is the login.">
+<meta property="og:url" content="https://vlana.app/">
+<meta property="og:site_name" content="Vlana">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+:root{--bg:#121212;--panel:#161616;--raise:#1e1e1e;--line:#262626;--line2:#333331;--ink:#edede8;--dim:#8a8a85;--mute:#5a5a56;--a:#cfff3a;--bad:#ff5a4e;--w:1280px;--pad:24px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit;color:inherit;background:none;border:0}
+button{cursor:pointer}
+::selection{background:var(--a);color:#111}
+.mono{font-family:'Geist Mono',ui-monospace,monospace;font-size:13px;letter-spacing:.01em}
+.dim{color:var(--dim)}
+.mute{color:var(--mute)}
+.lime{color:var(--a)}
+code.k{font:400 .88em 'Geist Mono',monospace;background:var(--raise);border:1px solid var(--line2);border-radius:3px;padding:1px 5px;color:var(--ink);white-space:nowrap}
+
+/* header */
+header{position:sticky;top:0;z-index:20;background:rgba(18,18,18,.88);backdrop-filter:blur(10px)}
+.bar{max-width:calc(var(--w) + 2*var(--pad));margin:0 auto;padding:18px var(--pad);display:flex;align-items:center;gap:12px;position:relative}
+.logo{display:flex;align-items:center;gap:10px;font-weight:500;font-size:17px}
+.mark{display:inline-grid;gap:3px;width:22px}
+.mark i{display:block;height:4px;background:var(--a)}
+.mark i:nth-child(2){width:68%}
+.nav{display:flex;gap:4px;margin-left:18px}
+.nav a{padding:8px 12px;border-radius:3px;color:var(--dim);font-size:15px}
+.nav a:hover{color:var(--ink)}
+.nav a.on{color:var(--ink);background:var(--raise)}
+.sp{flex:1}
+.live{display:flex;align-items:center;gap:8px;color:var(--dim)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--a);flex:none;display:inline-block}
+.dot.off{background:var(--mute)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:40px;padding:0 16px;border-radius:3px;font-weight:500;font-size:15px;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.btn.lime{background:var(--a);color:#111}
+.btn.lime:hover{background:#dcff6a}
+.btn.ghost{border:1px solid var(--line2);font:400 13px 'Geist Mono',monospace}
+.btn.ghost:hover{border-color:var(--dim)}
+.btn.sm{height:30px;padding:0 10px;font-size:12px}
+.wbtn{display:none;align-items:center;gap:10px;height:40px;padding:0 12px 0 6px;border:1px solid var(--line2);border-radius:3px;font:400 13px 'Geist Mono',monospace}
+.wbtn:hover,.wbtn.open{border-color:var(--a)}
+.wbtn svg.c{width:10px;height:10px;stroke:var(--dim);fill:none;stroke-width:1.5}
+.ava{width:28px;height:28px;border-radius:2px;display:grid;grid-template-columns:repeat(5,1fr);overflow:hidden;background:#0c0c0c;flex:none}
+.ava i{display:block}
+.ava.lg{width:44px;height:44px}
+.pop{position:absolute;right:var(--pad);top:66px;width:320px;background:var(--panel);border:1px solid var(--line2);border-radius:4px;display:none;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.pop.open{display:block}
+.pop .who{display:flex;gap:12px;align-items:center;padding:16px;border-bottom:1px solid var(--line)}
+.pop .who b{font-weight:500;font-size:17px;display:block}
+.pop .kv{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)}
+.pop .kv div{padding:12px 16px}
+.pop .kv div+div{border-left:1px solid var(--line)}
+.pop .kv span{display:block;font-size:18px;margin-top:2px}
+.pop .kv span.mono{font-size:13px;margin:0}
+.pop a,.pop button.it{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 16px;font:400 14px 'Geist Mono',monospace;border-bottom:1px solid var(--line);text-align:left}
+.pop a:hover,.pop button.it:hover{background:var(--raise);color:var(--a)}
+.pop button.it.out{border-bottom:0;color:var(--bad)}
+.pop button.it.out:hover{color:var(--bad)}
+
+/* frame + grid */
+main{max-width:calc(var(--w) + 2*var(--pad));margin:0 auto;padding:0 var(--pad) 100px}
+.frame{border:1px solid var(--line);margin-bottom:72px}
+.row{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.row>*+*{border-left:1px solid var(--line)}
+.cell{padding:var(--pad)}
+.spacer{height:46px}
+h2{font:300 clamp(46px,6vw,76px)/1 Geist,sans-serif;letter-spacing:-.025em}
+h3{font:400 26px/1.15 Geist,sans-serif;letter-spacing:-.01em}
+.sec-head{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.sec-head>*+*{border-left:1px solid var(--line)}
+.sec-head .cell{min-height:200px;display:flex;flex-direction:column;justify-content:flex-end}
+.sec-head .cell .mono{margin-bottom:auto}
+.sec-head p{color:var(--dim);font-size:17px;max-width:480px}
+.sec-head.sm .cell{min-height:120px}
+.sec-head.sm h2{font-size:clamp(36px,4vw,52px)}
+.cta{display:flex;align-items:flex-end;justify-content:space-between;width:100%;height:78px;padding:14px 16px;border-radius:4px;background:var(--a);color:#111;font-weight:500;font-size:16px;text-align:left;transition:background .15s}
+.cta:hover{background:#dcff6a}
+.cta.dark{background:var(--raise);color:var(--ink);border:1px solid var(--line2)}
+.cta.dark:hover{border-color:var(--dim)}
+.cta svg{width:14px;height:14px;flex:none}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(var(--n,3),1fr);border-top:1px solid var(--line)}
+.steps>*+*{border-left:1px solid var(--line)}
+.step{padding:var(--pad);display:flex;flex-direction:column;gap:12px;min-height:200px}
+.step .mono{color:var(--a)}
+.step p{color:var(--dim);font-size:15px}
+.step .acts{margin-top:auto}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.stats>*+*{border-left:1px solid var(--line)}
+.stats .cell{padding:18px var(--pad) 22px}
+.stats .v{font-size:20px;margin-top:8px}
+.meter{height:10px;background:repeating-linear-gradient(90deg,#2a2a28 0 2px,transparent 2px 4px)}
+.meter i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--a) 0 2px,transparent 2px 4px)}
+
+/* tabs */
+.tabs{display:flex;border-top:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs a,.tabs button{display:flex;align-items:center;gap:10px;padding:16px var(--pad);border-right:1px solid var(--line);color:var(--dim);font-weight:500;font-size:15px;position:relative;white-space:nowrap}
+.tabs .dot{background:transparent;border:1px solid var(--mute)}
+.tabs .on{color:var(--ink)}
+.tabs .on .dot{background:var(--a);border-color:var(--a)}
+.tabs .on:before{content:"";position:absolute;left:0;right:0;top:-1px;height:2px;background:var(--a)}
+
+/* devices */
+.dev{display:grid;grid-template-columns:1.1fr 1.3fr auto;gap:22px;align-items:center;padding:18px var(--pad);border-top:1px solid var(--line)}
+.dev .n{font-size:22px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.dev .acts{justify-content:flex-end}
+.qr{grid-column:1/-1;display:none;gap:24px;align-items:center}
+.qr.open{display:flex}
+.qr .box{background:#edede8;padding:10px;border-radius:3px;line-height:0}
+.qr .box img,.qr .box canvas{width:180px!important;height:180px!important}
+.form{display:flex;gap:8px;flex-wrap:wrap}
+.in{height:40px;border:1px solid var(--line2);border-radius:3px;padding:0 12px;background:#0c0c0c;font:400 14px 'Geist Mono',monospace;min-width:0}
+.in:focus{outline:none;border-color:var(--a)}
+.note{padding:var(--pad);border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.note p{font-size:22px;letter-spacing:-.01em;max-width:620px}
+.blank{padding:56px var(--pad);border-top:1px solid var(--line);display:grid;gap:10px;justify-items:start}
+.blank b{font:400 30px/1.1 Geist,sans-serif;letter-spacing:-.02em}
+.blank p{color:var(--dim);max-width:520px}
+
+/* clients */
+.cli{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.cli>*+*{border-left:1px solid var(--line)}
+.app{padding:var(--pad);display:flex;flex-direction:column;gap:10px}
+.app .t{display:flex;justify-content:space-between;align-items:center}
+.app .t b{font-weight:500;font-size:20px}
+.app p{color:var(--dim);font-size:15px}
+.app .acts{margin-top:6px}
+.tag{font:500 12px 'Geist Mono',monospace;background:var(--a);color:#111;padding:3px 7px;border-radius:2px}
+.tag.o{background:none;color:var(--dim);border:1px solid var(--line2)}
+
+/* nodes */
+.pill{font:500 12px 'Geist Mono',monospace;padding:3px 7px;border-radius:2px;border:1px solid var(--line2);color:var(--dim);white-space:nowrap}
+.pill.active{border-color:var(--a);color:var(--a)}
+.pill.offline,.pill.banned{border-color:var(--bad);color:var(--bad)}
+.nrow{display:grid;grid-template-columns:1.1fr 1.3fr repeat(3,.6fr) auto;gap:16px;align-items:center;padding:16px var(--pad);border-top:1px solid var(--line)}
+.nrow .n{font-size:20px}
+.nrow .why{font-size:14px;color:var(--dim)}
+.nrow .install{grid-column:1/-1}
+.th>*{font:400 12px 'Geist Mono',monospace!important;color:var(--mute)!important}
+.code{display:flex;align-items:center;gap:12px;background:#0c0c0c;border:1px solid var(--line2);border-radius:4px;padding:12px 12px 12px 16px;overflow:hidden}
+.code code{flex:1;overflow-x:auto;white-space:nowrap;font:400 13px 'Geist Mono',monospace;color:var(--dim);scrollbar-width:none}
+.ledger .r{display:grid;grid-template-columns:80px 1fr 1fr 120px;gap:12px;padding:14px var(--pad);border-top:1px solid var(--line);align-items:center}
+.ledger a.r:hover{background:var(--panel)}
+.empty{padding:28px var(--pad);border-top:1px solid var(--line);color:var(--mute)}
+.list{list-style:none}
+.list li{display:grid;grid-template-columns:38px 1fr;padding:12px 0;border-top:1px solid var(--line);color:var(--dim);font-size:15px}
+.list li:first-child{border-top:0}
+.list li i{font:500 13px 'Geist Mono',monospace;color:var(--a);font-style:normal;padding-top:2px}
+
+/* tiers */
+.tiers{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.tiers>*+*{border-left:1px solid var(--line)}
+.tier .top{padding:var(--pad);border-bottom:1px solid var(--line);min-height:170px;display:flex;flex-direction:column;justify-content:space-between}
+.tier .name{display:flex;justify-content:space-between;align-items:center;font-size:22px}
+.tier .amt{font:400 clamp(38px,4vw,52px)/1 Geist,sans-serif;letter-spacing:-.03em}
+.tier ol{list-style:none;padding:6px var(--pad) var(--pad)}
+.tier li{display:grid;grid-template-columns:38px 1fr;padding:11px 0;border-bottom:1px solid var(--line);color:var(--dim);font-size:15px}
+.tier li:last-child{border-bottom:0}
+.tier li i{font:500 13px 'Geist Mono',monospace;color:var(--a);font-style:normal;padding-top:2px}
+.tier li.x{color:var(--mute)}
+.tier li.x i{color:var(--mute)}
+.tier.me .top{box-shadow:inset 0 2px 0 var(--a)}
+
+/* docs */
+.docs{display:grid;grid-template-columns:260px 1fr;border-top:1px solid var(--line)}
+.docs>*+*{border-left:1px solid var(--line)}
+.toc{position:sticky;top:77px;align-self:start;padding:16px 0}
+.toc a{display:flex;gap:14px;padding:9px var(--pad);color:var(--dim);font-size:15px}
+.toc a i{font:400 12px 'Geist Mono',monospace;color:var(--mute);font-style:normal;padding-top:3px}
+.toc a:hover,.toc a.on{color:var(--ink)}
+.toc a.on i{color:var(--a)}
+.doc section{padding:40px var(--pad) 44px;border-top:1px solid var(--line);scroll-margin-top:80px}
+.doc section:first-child{border-top:0}
+.doc h3{font-size:34px;letter-spacing:-.02em;margin-bottom:18px}
+.doc h4{font-weight:500;font-size:18px;margin:28px 0 10px}
+.doc p,.doc li{color:var(--dim);max-width:680px}
+.doc p+p{margin-top:12px}
+.doc p b,.doc li b{color:var(--ink);font-weight:500}
+.doc ul{list-style:none;margin-top:10px}
+.doc ul li{padding:8px 0 8px 22px;position:relative;border-top:1px solid var(--line)}
+.doc ul li:first-child{border-top:0}
+.doc ul li:before{content:"";position:absolute;left:2px;top:19px;width:8px;height:2px;background:var(--a)}
+.doc .code{margin-top:12px;max-width:760px}
+.doc table{border-collapse:collapse;margin-top:14px;width:100%;max-width:760px;font-size:15px}
+.doc td,.doc th{border-top:1px solid var(--line);padding:10px 12px 10px 0;text-align:left;vertical-align:top}
+.doc th{font:400 12px 'Geist Mono',monospace;color:var(--mute)}
+.doc td{color:var(--dim)}
+.doc td:first-child{color:var(--ink)}
+.qa{border-top:1px solid var(--line);max-width:760px}
+.qa summary{list-style:none;cursor:pointer;padding:14px 0;display:flex;justify-content:space-between;gap:16px;font-size:17px}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary:after{content:"+";font:400 18px 'Geist Mono',monospace;color:var(--a)}
+.qa[open] summary:after{content:"−"}
+.qa p{padding:0 0 16px}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin-top:20px;max-width:860px}
+.flow>*+*{border-left:1px solid var(--line)}
+.flow div{padding:16px;min-height:120px;display:flex;flex-direction:column;justify-content:space-between}
+.flow div.n{background:repeating-linear-gradient(to bottom,rgba(207,255,58,.06) 0 2px,transparent 2px 4px)}
+.flow b{font-weight:400;font-size:20px}
+.flow small{font:400 12px 'Geist Mono',monospace;color:var(--dim)}
+
+/* treasury */
+.wal{display:flex;flex-direction:column;gap:14px}
+.wal .addr{font:400 clamp(14px,1.35vw,17px)/1.4 'Geist Mono',monospace;word-break:break-all;color:var(--ink)}
+.wal .bal{font:300 clamp(36px,3.6vw,48px)/1 Geist,sans-serif;letter-spacing:-.03em}
+.wal .bal small{font:400 14px 'Geist Mono',monospace;color:var(--dim);margin-left:8px;letter-spacing:0}
+.flowbar{display:flex;height:10px;gap:2px}
+.flowbar i{display:block;height:100%}
+
+/* network */
+.gwrap{display:grid;grid-template-columns:1fr 380px;border-top:1px solid var(--line)}
+.gwrap>*+*{border-left:1px solid var(--line)}
+.globe{position:relative;height:680px;cursor:grab;touch-action:none;overflow:hidden;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:24px 24px;background-position:-1px -1px}
+.globe:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(18,18,18,.6) 30%,var(--bg) 72%);pointer-events:none}
+.globe.grab{cursor:grabbing}
+.globe canvas{position:relative;width:100%;height:100%;display:block}
+.gtip{position:absolute;left:0;top:0;pointer-events:none;background:var(--panel);border:1px solid var(--a);border-radius:4px;padding:12px 14px;min-width:190px;display:none;z-index:2}
+.gtip b{display:block;font-weight:500;font-size:16px;margin:4px 0 2px}
+.glegend{position:absolute;left:var(--pad);bottom:18px;display:flex;gap:16px;color:var(--dim);pointer-events:none}
+.glegend span{display:flex;align-items:center;gap:7px}
+.glegend i{width:6px;height:6px;background:var(--a);display:inline-block}
+.glegend i.off{background:var(--mute)}
+.ghint{position:absolute;right:var(--pad);bottom:18px;color:var(--mute);pointer-events:none;white-space:pre}
+.slist{max-height:680px;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.slist .h{display:flex;justify-content:space-between;padding:16px var(--pad);position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:1}
+.srow{display:grid;grid-template-columns:10px 1fr auto;gap:12px;align-items:center;padding:13px var(--pad);border-bottom:1px solid var(--line);cursor:pointer}
+.srow:hover,.srow.on{background:var(--panel)}
+.srow.on{box-shadow:inset 2px 0 0 var(--a)}
+.srow b{font-weight:500;font-size:16px;display:block}
+.srow .r{text-align:right}
+
+footer{max-width:calc(var(--w) + 2*var(--pad));margin:0 auto;padding:0 var(--pad) 40px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--mute)}
+footer a:hover{color:var(--a)}
+.flinks{display:flex;gap:18px;flex-wrap:wrap}
+.view{display:none}
+.view.on{display:block}
+
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:var(--pad)}
+.modal.open{display:flex}
+.sheet{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line2);border-radius:4px}
+.sheet .h{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}
+.sheet .h b{font-weight:500;font-size:18px}
+.wl a,.wl button{display:flex;width:100%;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);font-size:17px;text-align:left}
+.wl a:hover,.wl button:hover{background:var(--raise);color:var(--a)}
+.sheet .f{padding:16px 20px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;z-index:60;background:var(--a);color:#111;font:500 13px 'Geist Mono',monospace;padding:10px 14px;border-radius:3px;transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.err{background:var(--bad);color:#fff}
+
+@media (max-width:900px){
+  :root{--pad:16px}
+  .bar{flex-wrap:wrap;row-gap:10px}
+  .nav{order:5;width:100%;margin:0 -12px;overflow-x:auto;scrollbar-width:none}
+  .row,.sec-head,.cli,.docs{grid-template-columns:1fr}
+  .row>*+*,.sec-head>*+*,.cli>*+*,.docs>*+*{border-left:0;border-top:1px solid var(--line)}
+  .sec-head .cell{min-height:0}
+  .sec-head .cell:first-child{min-height:130px}
+  .steps{grid-template-columns:1fr}
+  .steps>*+*{border-left:0;border-top:1px solid var(--line)}
+  .step{min-height:0}
+  .tiers,.stats{grid-template-columns:1fr 1fr}
+  .tiers>*:nth-child(3),.stats>*:nth-child(3){border-left:0}
+  .tiers>*:nth-child(n+3),.stats>*:nth-child(n+3){border-top:1px solid var(--line)}
+  .dev{grid-template-columns:1fr}
+  .dev .acts{justify-content:flex-start}
+  .nrow{grid-template-columns:1fr auto}
+  .nrow .hide{display:none}
+  .nrow.th{display:none!important}
+  .ledger .r{grid-template-columns:52px 1fr auto}
+  .ledger .r>:nth-child(3){display:none}
+  .live .t{display:none}
+  .toc{position:static;display:flex;overflow-x:auto;padding:0;scrollbar-width:none}
+  .toc a{white-space:nowrap;border-right:1px solid var(--line);padding:12px 16px}
+  .flow{grid-template-columns:1fr 1fr}
+  .flow>*:nth-child(3){border-left:0}
+  .flow>*:nth-child(n+3){border-top:1px solid var(--line)}
+  .pop{right:16px;left:16px;width:auto}
+  .gwrap{grid-template-columns:1fr}
+  .gwrap>*+*{border-left:0;border-top:1px solid var(--line)}
+  .globe{height:440px}
+  .ghint{top:16px;bottom:auto}
+  .slist{max-height:none}
+}
+@media (max-width:520px){
+  .tiers{grid-template-columns:1fr}
+  .tiers>*{border-left:0!important}
+  .tiers>*+*{border-top:1px solid var(--line)}
+  .wbtn .addr{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <a class="logo" href="#/"><span class="mark"><i></i><i></i><i></i></span>Vlana</a>
+    <nav class="nav" id="nav">
+      <a href="#/app" data-v="app">Devices</a>
+      <a href="#/node" data-v="node">Nodes</a>
+      <a href="#/network" data-v="net">Network</a>
+      <a href="#/payouts" data-v="pay">Payouts</a>
+      <a href="#/docs" data-v="docs">Docs</a>
+    </nav>
+    <span class="sp"></span>
+    <span class="live mono"><span class="dot" id="hdot"></span><span id="hlive">—</span><span class="t">&nbsp;nodes online</span></span>
+    <button class="btn lime" id="hconnect">Connect wallet</button>
+    <button class="wbtn" id="wbtn"><span class="ava" id="wava"></span><span class="addr" id="waddr"></span><svg class="c" viewBox="0 0 10 10"><path d="M2 4l3 3 3-3"/></svg></button>
+    <div class="pop" id="pop">
+      <div class="who"><span class="ava lg" id="pava"></span><div><b id="paddr"></b><span class="mono dim">solana wallet</span></div></div>
+      <div class="kv"><div><span class="mono dim">$VLANA</span><span id="pbal">—</span></div><div><span class="mono dim">plan</span><span id="ptier" class="lime">—</span></div></div>
+      <button class="it" id="pcopy">Copy address <span>⧉</span></button>
+      <a href="#/app">My devices <span>→</span></a>
+      <a href="#/node">My nodes <span>→</span></a>
+      <a href="#/network">Network <span>→</span></a>
+      <a href="#/payouts">Payouts <span>→</span></a>
+      <a href="#/docs">Docs <span>→</span></a>
+      <a id="pscan" target="_blank" rel="noopener">View on Solscan <span>↗</span></a>
+      <button class="it out" id="pout">Disconnect <span>⏻</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ============ CONNECT ============ -->
+<section class="view" id="v-home">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim">no email · no card · no account</span><h2 style="margin-top:56px">connect/</h2></div>
+      <div class="cell"><p>Your wallet is the login. Signing is free and sends nothing.</p></div>
+    </div>
+    <div class="row">
+      <div class="cell"><button class="cta" id="c-go">Connect wallet <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></button></div>
+      <div class="cell"><a class="cta dark" id="buy" target="_blank" rel="noopener">Buy $VLANA <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></a></div>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="mono">01</span><h3>Hold $VLANA</h3><p>Your balance is your plan. More tokens, more devices and traffic.</p></div>
+      <div class="step"><span class="mono">02</span><h3>Sign in</h3><p>Phantom, Solflare or Backpack. One signature, no transaction, no fee.</p></div>
+      <div class="step"><span class="mono">03</span><h3>Add a device</h3><p>Get a link, open it in Hiddify. Done. <a class="lime" href="#/docs#connect">How →</a></p></div>
+    </div>
+    <div class="sec-head sm"><div class="cell"><h2>plans/</h2></div><div class="cell"><p>Checked on-chain every 15 minutes. Sell and access stops.</p></div></div>
+    <div class="tiers" id="tiers"></div>
+  </div>
+</section>
+
+<!-- ============ DEVICES ============ -->
+<section class="view" id="v-app">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim">your devices</span><h2 style="margin-top:56px">my-devices/</h2></div>
+      <div class="cell"><p>One link per device. It updates itself when nodes change. Don't share it.</p></div>
+    </div>
+    <div class="stats">
+      <div class="cell"><div class="mono dim">$VLANA held</div><div class="v" id="a-bal">—</div></div>
+      <div class="cell"><div class="mono dim">plan</div><div class="v" id="a-tier">—</div></div>
+      <div class="cell"><div class="mono dim">devices</div><div class="v" id="a-dev">—</div></div>
+      <div class="cell"><div class="mono dim">used this month</div><div class="v" id="a-used">—</div></div>
+    </div>
+    <div id="a-gate"></div>
+    <div class="tiers" id="a-tiers" style="display:none"></div>
+    <div id="a-keys"></div>
+    <div class="note" id="a-addrow">
+      <form class="form" id="a-add" style="flex:1">
+        <input class="in" id="a-label" maxlength="24" placeholder="name it: phone, laptop…" style="flex:1">
+        <button class="btn lime" type="submit">Add device</button>
+      </form>
+    </div>
+
+    <div class="sec-head sm"><div class="cell"><h2>how-to-connect/</h2></div><div class="cell"><p>Pick your device. Install the app, add your link, tap connect.</p></div></div>
+    <div class="tabs" id="plat"></div>
+    <div class="steps" id="howsteps"></div>
+    <div class="cli" id="clients"></div>
+  </div>
+</section>
+
+<!-- ============ NODES ============ -->
+<section class="view" id="v-node">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim">paid every hour in sol</span><h2 style="margin-top:56px">my-nodes/</h2></div>
+      <div class="cell"><p>Keep your node up. Every hour it stays up, you get SOL straight to this wallet.</p></div>
+    </div>
+    <div class="stats">
+      <div class="cell"><div class="mono dim">this hour closes in</div><div class="v" id="o-end">—</div></div>
+      <div class="cell"><div class="mono dim">nodes on track</div><div class="v lime" id="o-track">—</div></div>
+      <div class="cell"><div class="mono dim">last hour</div><div class="v" id="o-last">—</div></div>
+      <div class="cell"><div class="mono dim">paid to you</div><div class="v" id="o-earned">—</div></div>
+    </div>
+    <div class="nrow th" id="o-th"><span>node</span><span>status</span><span class="hide">this hour</span><span class="hide">latency</span><span class="hide">earned</span><span></span></div>
+    <div id="o-nodes"></div>
+    <div class="row">
+      <div class="cell"><button class="cta" id="o-add">Add a node <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></button></div>
+      <div class="cell mono dim" style="display:flex;align-items:flex-end">you get a one-line install command · max&nbsp;<span id="o-max">3</span>&nbsp;paid nodes per wallet</div>
+    </div>
+
+    <div class="sec-head sm"><div class="cell"><h2>setup/</h2></div><div class="cell"><p>Ten minutes, one command. No Linux skills needed beyond SSH.</p></div></div>
+    <div class="steps" style="--n:4">
+      <div class="step"><span class="mono">01</span><h3>Get a server</h3><p>Any VPS with a public IP: 1 CPU, 1 GB RAM, Ubuntu or Debian. About $4/month. A home machine works too, and pays more.</p></div>
+      <div class="step"><span class="mono">02</span><h3>Add a node</h3><p>Press the button above. You get a command with a one-time token.</p></div>
+      <div class="step"><span class="mono">03</span><h3>Paste it</h3><p>SSH into the server, paste, enter. It installs Xray and our agent in about a minute.</p></div>
+      <div class="step"><span class="mono">04</span><h3>Go live</h3><p>Checkers test your node from outside. First pass makes it live, usually within 15 minutes.</p></div>
+    </div>
+    <div class="row">
+      <div class="cell"><h3 style="margin-bottom:10px">What pays more</h3>
+        <ol class="list">
+          <li><i>01</i>Staying up. 95%+ of checks in an hour pays that hour. Below that, nothing.</li>
+          <li><i>02</i>Rare countries. Fewer nodes there, bigger slice.</li>
+          <li><i>03</i>Home internet. Residential IPs get 1.5×.</li>
+          <li><i>04</i>Tiny amounts wait until 0.001 SOL, then go out with the next payout.</li>
+        </ol></div>
+      <div class="cell"><h3 style="margin-bottom:10px">Handy commands</h3>
+        <ol class="list">
+          <li><i>log</i><span><code class="k">journalctl -u vlana-agent -f</code></span></li>
+          <li><i>st</i><span><code class="k">systemctl status xray vlana-agent</code></span></li>
+          <li><i>rs</i><span><code class="k">systemctl restart vlana-agent</code></span></li>
+          <li><i>→</i><span>More in <a class="lime" href="#/docs#node">the node guide</a>.</span></li>
+        </ol></div>
+    </div>
+
+    <div class="sec-head sm"><div class="cell"><h2>payouts/</h2></div><div class="cell"><p>Straight to this wallet, every hour your nodes make the cut.</p></div></div>
+    <div class="ledger" id="o-pay"></div>
+  </div>
+</section>
+
+<!-- ============ NETWORK ============ -->
+<section class="view" id="v-net">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim">live · checked every few minutes</span><h2 style="margin-top:56px">network/</h2></div>
+      <div class="cell"><p>Every server here is run by someone, somewhere. Drag the globe, pick a node.</p></div>
+    </div>
+    <div class="stats">
+      <div class="cell"><div class="mono dim">nodes online</div><div class="v lime" id="n-on">—</div></div>
+      <div class="cell"><div class="mono dim">countries</div><div class="v" id="n-cc">—</div></div>
+      <div class="cell"><div class="mono dim">home lines</div><div class="v" id="n-home">—</div></div>
+      <div class="cell"><div class="mono dim">avg latency</div><div class="v" id="n-lat">—</div></div>
+    </div>
+    <div class="gwrap">
+      <div class="globe" id="globe">
+        <canvas id="gcv"></canvas>
+        <div class="gtip" id="gtip"></div>
+        <div class="glegend mono"><span><i></i>online</span><span><i class="off"></i>offline</span></div>
+        <div class="ghint mono"><span id="gread"></span> · drag to spin</div>
+      </div>
+      <div class="slist" id="slist"></div>
+    </div>
+    <div class="row">
+      <div class="cell"><a class="cta" href="#/node">Run a node, get SOL <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg></a></div>
+      <div class="cell mono dim" style="display:flex;align-items:flex-end">rare countries earn more · <a class="lime" href="#/docs#pay">&nbsp;how payouts work</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PAYOUTS ============ -->
+<section class="view" id="v-pay">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim">every transfer on-chain</span><h2 style="margin-top:56px">payouts/</h2></div>
+      <div class="cell"><p>Every hour, fresh creator fees are split among nodes that stayed up. SOL goes out the moment the hour closes.</p></div>
+    </div>
+    <div class="stats">
+      <div class="cell"><div class="mono dim">paid out total</div><div class="v lime" id="p-total">—</div></div>
+      <div class="cell"><div class="mono dim">transfers</div><div class="v" id="p-n">—</div></div>
+      <div class="cell"><div class="mono dim">operators paid</div><div class="v" id="p-ops">—</div></div>
+      <div class="cell"><div class="mono dim">next round in</div><div class="v" id="p-next">—</div></div>
+    </div>
+    <div class="sec-head sm"><div class="cell"><h2>treasury/</h2></div><div class="cell"><p>The wallet that collects creator fees and pays operators. Don't trust us, check it.</p></div></div>
+    <div class="row" id="p-wallets"></div>
+    <div class="stats">
+      <div class="cell"><div class="mono dim">fees in</div><div class="v" id="t-in">—</div></div>
+      <div class="cell"><div class="mono dim">paid to operators</div><div class="v lime" id="t-paid">—</div></div>
+      <div class="cell"><div class="mono dim">earned, waiting</div><div class="v" id="t-owed">—</div></div>
+      <div class="cell"><div class="mono dim">checkers + buyback</div><div class="v" id="t-kept">—</div></div>
+    </div>
+    <div class="row">
+      <div class="cell" style="display:grid;gap:18px" id="p-split"></div>
+      <div class="cell"><h3 style="margin-bottom:10px">How it's split</h3>
+        <ol class="list">
+          <li><i>01</i><span>pump.fun creator fees land in the <a class="lime" id="p-treasury" target="_blank" rel="noopener">treasury</a>.</span></li>
+          <li><i>02</i>Every hour, fees that came in become that round's pool.</li>
+          <li><i>03</i>Nodes with 95%+ of checks passed split the operators' part, by rarity and home bonus.</li>
+          <li><i>04</i><span>SOL is sent right away, one transaction for everyone. <a class="lime" href="#/docs#pay">Details →</a></span></li>
+        </ol></div>
+    </div>
+    <div class="sec-head sm"><div class="cell"><h2>rounds/</h2></div><div class="cell"><p>The last 48 hours. Fees in, pool for operators, nodes that made the cut.</p></div></div>
+    <div class="ledger" id="p-rd"></div>
+    <div class="sec-head sm"><div class="cell"><h2>transfers/</h2></div><div class="cell"><p>Every payment, newest first. Click one to check it on Solscan.</p></div></div>
+    <div class="ledger" id="p-tx"></div>
+  </div>
+</section>
+
+<!-- ============ DOCS ============ -->
+<section class="view" id="v-docs">
+  <div class="frame">
+    <div class="spacer"></div>
+    <div class="sec-head">
+      <div class="cell"><span class="mono dim">everything on one page</span><h2 style="margin-top:56px">docs/</h2></div>
+      <div class="cell"><p>How it works, how to connect, how to run a node and get paid.</p></div>
+    </div>
+    <div class="docs">
+      <nav class="toc" id="toc"></nav>
+      <div class="doc" id="doc">
+
+<section id="about" data-t="What it is">
+  <h3>What it is</h3>
+  <p><b>Vlana is a VPN without an account.</b> No email, no card, no password. You sign in with a Solana wallet and hold $VLANA. That's the subscription.</p>
+  <p>Nodes are run by people, not by us. They get paid in SOL from the token's pump.fun creator fees, every hour they stay up.</p>
+  <h4>Three things it does</h4>
+  <ul>
+    <li><b>No identity.</b> We never learn who you are. A wallet address is all we see.</li>
+    <li><b>Invisible.</b> VLESS + REALITY makes your traffic look like a normal HTTPS visit to a big site. Networks that block VPNs usually let it through.</li>
+    <li><b>Earn.</b> Anyone can run a node and get SOL for it.</li>
+  </ul>
+</section>
+
+<section id="hops" data-t="Two hops">
+  <h3>Two hops</h3>
+  <p>Every connection goes through two nodes run by <b>two different operators</b>. Neither of them gets the full picture.</p>
+  <div class="flow">
+    <div><small>00</small><b>you</b></div>
+    <div class="n"><small>entry · operator A</small><b>sees you,<br>not the site</b></div>
+    <div class="n"><small>exit · operator B</small><b>sees the site,<br>not you</b></div>
+    <div><small>03</small><b>the site</b></div>
+  </div>
+  <p style="margin-top:18px">The entry only knows your IP and that you're using Vlana. The exit only knows the entry's IP and the site. Your exit stays the same per entry, so sites don't see you jump around.</p>
+  <p><b>A VPN that can't rat you out:</b> no single operator can tie you to what you do.</p>
+</section>
+
+<section id="plans" data-t="Plans">
+  <h3>Plans</h3>
+  <p>Your plan depends on how much $VLANA sits in the wallet you signed in with. Balances are re-checked every 15 minutes. Buy more and you move up; sell and you move down or lose access.</p>
+  <table id="d-tiers"></table>
+  <p style="margin-top:14px">Traffic resets on the 1st of every month. A device that hits its cap pauses until then.</p>
+</section>
+
+<section id="connect" data-t="Connect a device">
+  <h3>Connect a device</h3>
+  <p>We recommend <b>Hiddify</b>. It's free, open source and runs on everything. Any app that supports VLESS + REALITY subscriptions works too.</p>
+  <h4>Steps</h4>
+  <ul>
+    <li><b>Sign in</b> and open <a class="lime" href="#/app">My devices</a>.</li>
+    <li><b>Add a device</b> and give it a name. Each device gets its own link.</li>
+    <li><b>On a phone:</b> install Hiddify, then press <b>Open in Hiddify</b> on that phone, or scan the QR from your computer.</li>
+    <li><b>On a computer:</b> install Hiddify, press <b>Copy link</b>, then in Hiddify press <b>+</b> → <b>Add from clipboard</b>.</li>
+    <li><b>Tap connect.</b> Hiddify picks the fastest node by itself.</li>
+  </ul>
+  <h4>Apps</h4>
+  <table>
+    <tr><th>device</th><th>recommended</th><th>also works</th></tr>
+    <tr><td>iPhone, iPad</td><td><a class="lime" target="_blank" rel="noopener" href="https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532">Hiddify ↗</a></td><td><a target="_blank" rel="noopener" href="https://apps.apple.com/app/streisand/id6450534064">Streisand ↗</a></td></tr>
+    <tr><td>Android</td><td><a class="lime" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=app.hiddify.com">Hiddify ↗</a></td><td><a target="_blank" rel="noopener" href="https://github.com/2dust/v2rayNG/releases/latest">v2rayNG ↗</a></td></tr>
+    <tr><td>Windows</td><td><a class="lime" target="_blank" rel="noopener" href="https://github.com/hiddify/hiddify-app/releases/latest">Hiddify ↗</a></td><td><a target="_blank" rel="noopener" href="https://github.com/2dust/v2rayN/releases/latest">v2rayN ↗</a></td></tr>
+    <tr><td>macOS</td><td><a class="lime" target="_blank" rel="noopener" href="https://github.com/hiddify/hiddify-app/releases/latest">Hiddify ↗</a></td><td><a target="_blank" rel="noopener" href="https://apps.apple.com/app/streisand/id6450534064">Streisand ↗</a> (Apple silicon)</td></tr>
+    <tr><td>Linux</td><td><a class="lime" target="_blank" rel="noopener" href="https://github.com/hiddify/hiddify-app/releases/latest">Hiddify ↗</a></td><td><a target="_blank" rel="noopener" href="https://github.com/2dust/v2rayN/releases/latest">v2rayN ↗</a></td></tr>
+  </table>
+  <h4>Not connecting?</h4>
+  <ul>
+    <li>Check <a class="lime" href="#/app">My devices</a>. A grey dot means the device is paused: no plan, too many devices, or the monthly cap is used up.</li>
+    <li>In the app, <b>update the subscription</b>. Nodes change, the link pulls the fresh list.</li>
+    <li>Try another node from the list. Some networks block specific IPs.</li>
+  </ul>
+</section>
+
+<section id="node" data-t="Run a node">
+  <h3>Run a node</h3>
+  <p>A node is a small server running <b>Xray</b> (the VPN engine) and our <b>agent</b> (a tiny Python script that fetches config and reports traffic). Your REALITY private key is generated on your server and never leaves it.</p>
+  <h4>You need</h4>
+  <ul>
+    <li>A Linux server with a <b>public IP</b>: Ubuntu 20.04+, Debian 11+ or a RHEL clone.</li>
+    <li><b>1 CPU, 1 GB RAM</b>, any disk. Bandwidth matters more than power.</li>
+    <li>Port <b>443/tcp</b> free and reachable from the internet.</li>
+    <li>Root access over SSH.</li>
+  </ul>
+  <h4>Install</h4>
+  <p>Open <a class="lime" href="#/node">My nodes</a>, press <b>Add a node</b>, copy the command and run it on the server:</p>
+  <div class="code"><code id="d-cmd"></code></div>
+  <p style="margin-top:12px">The token is single-use and ties the node to your wallet. The node goes live after its first successful outside check.</p>
+  <h4>Options</h4>
+  <p>Defaults are fine for almost everyone. If port 443 is taken, or you want a different site to imitate, set them before <code class="k">bash</code>:</p>
+  <div class="code"><code>curl -fsSL <span class="d-host"></span>/install.sh | sudo PORT=8443 SNI=www.microsoft.com bash -s &lt;token&gt;</code></div>
+  <h4>Manage</h4>
+  <table>
+    <tr><th>what</th><th>command</th></tr>
+    <tr><td>live logs</td><td><code class="k">journalctl -u vlana-agent -f</code></td></tr>
+    <tr><td>status</td><td><code class="k">systemctl status xray vlana-agent</code></td></tr>
+    <tr><td>restart</td><td><code class="k">systemctl restart vlana-agent xray</code></td></tr>
+    <tr><td>update agent</td><td>run the same install command again</td></tr>
+    <tr><td>uninstall</td><td><code class="k">systemctl disable --now vlana-agent xray &amp;&amp; rm -rf /opt/vlana /etc/vlana</code></td></tr>
+  </table>
+  <h4>Statuses</h4>
+  <table>
+    <tr><td>enrolling</td><td>Command created, not installed yet.</td></tr>
+    <tr><td>pending</td><td>Installed, waiting for the first outside check.</td></tr>
+    <tr><td>active</td><td>Live. Serving users and earning.</td></tr>
+    <tr><td>offline</td><td>No successful check in 15 minutes. Check the logs.</td></tr>
+  </table>
+</section>
+
+<section id="pay" data-t="Payouts">
+  <h3>Payouts</h3>
+  <p>No waiting for payday. The network runs in <b>one-hour rounds</b>. When a round closes, the creator fees that came in during it are split right away:</p>
+  <table id="d-split"></table>
+  <h4>Who gets paid</h4>
+  <ul>
+    <li><b>Good uptime.</b> Checkers test every node through a real VLESS tunnel every few minutes. A node that passes <b>95%</b> of at least <b>6 checks</b> in the hour makes the cut. Below that it gets nothing for that hour.</li>
+    <li><b>Rarity.</b> The pool is weighted by 1/√(good nodes in your country). Being the only node in a country is worth a lot.</li>
+    <li><b>Home bonus.</b> Residential IPs get 1.5×.</li>
+    <li><b>Fair limits.</b> Max 3 paid nodes per wallet and one per /24 network, so nobody farms with a rack of VPS.</li>
+  </ul>
+  <h4>How it's sent</h4>
+  <ul>
+    <li>SOL goes from the treasury straight to the wallet that added the node, in one transaction for everyone in the round.</li>
+    <li>Amounts under <b>0.001 SOL</b> wait and go out together with your next payout.</li>
+    <li>If no node makes the cut, the pool rolls into the next hour.</li>
+    <li>Every transfer is public: see <a class="lime" href="#/payouts">Payouts</a> or Solscan.</li>
+  </ul>
+</section>
+
+<section id="privacy" data-t="Privacy">
+  <h3>Privacy</h3>
+  <h4>What we store</h4>
+  <ul>
+    <li>Your wallet address and token balance.</li>
+    <li>Your device names, links and bytes used this month (for the cap).</li>
+  </ul>
+  <h4>What we don't</h4>
+  <ul>
+    <li>No email, name, card or phone. There is nowhere to type them.</li>
+    <li>No browsing history. Xray access logs are <b>off</b> in the config every node gets.</li>
+    <li>No log of the IP you connect from.</li>
+  </ul>
+  <h4>Blocked on the network</h4>
+  <ul>
+    <li>BitTorrent, outgoing mail ports (25, 465, 587) and private networks. This keeps node operators out of trouble.</li>
+  </ul>
+</section>
+
+<section id="faq" data-t="FAQ">
+  <h3>FAQ</h3>
+  <details class="qa"><summary>Do I pay anything besides holding the token?</summary><p>No. Holding is the subscription. Signing in is a free message signature, not a transaction.</p></details>
+  <details class="qa"><summary>I sold my tokens. What happens?</summary><p>Within about 15 minutes your plan drops. Below the minimum, your devices pause. Buy back and they come back on their own.</p></details>
+  <details class="qa"><summary>Which wallets work?</summary><p>Any wallet that can sign a message: Phantom, Solflare, Backpack, including a Ledger connected through them.</p></details>
+  <details class="qa"><summary>Will it work on hotel, school or office Wi-Fi?</summary><p>Usually yes. To the network your traffic looks like a normal HTTPS connection to a large website.</p></details>
+  <details class="qa"><summary>Can a node operator see my traffic?</summary><p>An entry sees encrypted bytes and your IP. An exit sees which sites are visited but not by whom. HTTPS sites stay encrypted end to end.</p></details>
+  <details class="qa"><summary>Is the code open?</summary><p>Yes. The control server, node agent, installer and checker are public, with an end-to-end test that builds a real two-hop chain on every commit. <a class="lime" id="d-gh" target="_blank" rel="noopener">GitHub ↗</a></p></details>
+</section>
+
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="mono">
+  <span>Vlana</span>
+  <span class="flinks"><a href="#/network">network</a><a href="#/payouts">payouts</a><a href="#/docs">docs</a><a id="f-gh" target="_blank" rel="noopener">github</a><a id="f-pump" target="_blank" rel="noopener">pump.fun</a></span>
+</footer>
+
+<div class="modal" id="wm">
+  <div class="sheet">
+    <div class="h"><b>Connect wallet</b><button class="mono dim" data-close>close</button></div>
+    <div class="wl" id="wl"></div>
+    <div class="f mono dim">Signing is free. No transaction.</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ARROW = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 11 11 3M5 3h6v6"/></svg>';
+const fmt = n => n >= 1e6 ? +(n / 1e6).toFixed(n % 1e6 ? 1 : 0) + 'M' : n >= 1e3 ? +(n / 1e3).toFixed(n % 1e3 ? 1 : 0) + 'k' : String(Math.round(n));
+const sol = n => (+n || 0).toLocaleString('en', { maximumFractionDigits: 3 }) + ' SOL';
+const pct = n => (n * 100).toFixed(n && n < .1 ? 1 : 0) + '%';
+const short = w => w ? w.slice(0, 4) + '…' + w.slice(-4) : '';
+const gb = b => (b / 1024 ** 3).toFixed(b < 10 * 1024 ** 3 ? 1 : 0);
+const gbcap = g => g >= 1000 ? g / 1000 + ' TB' : g + ' GB';
+function left(ms) {
+  if (ms <= 0) return 'now';
+  const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4);
+  const sec = Math.floor(ms % 6e4 / 1e3);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : (m ? `${m}m ${String(sec).padStart(2, '0')}s` : `${sec}s`);
+}
+function toast(msg, err) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.className = 'toast', 2200);
+}
+async function copy(text, what = 'copied') {
+  try { await navigator.clipboard.writeText(text); toast(what); } catch { prompt('copy', text); }
+}
+// 5x5 mirrored identicon from the wallet address
+function avatar(el, w) {
+  let h = 0; const cells = [];
+  for (const c of w) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) {
+    const bit = (h >>> (y * 3 + Math.min(x, 4 - x))) & 1;
+    cells.push(`<i style="background:${bit ? 'var(--a)' : 'transparent'}"></i>`);
+  }
+  el.innerHTML = cells.join('');
+}
+
+// ---------- api ----------
+let session = localStorage.getItem('vl_session') || '';
+const sessionWallet = () => session.split('.')[0];
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: 'Bearer ' + session } : {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && path !== '/api/auth/verify') { logout(); throw new Error('please sign in again'); }
+  if (!r.ok) throw new Error(j.error || 'error');
+  return j;
+}
+const post = (p, b) => api(p, { method: 'POST', body: JSON.stringify(b || {}) });
+const del = p => api(p, { method: 'DELETE' });
+
+// ---------- wallet ----------
+const WALLETS = [
+  { name: 'Phantom', get: () => window.phantom?.solana, url: u => `https://phantom.app/ul/browse/${encodeURIComponent(u)}?ref=${encodeURIComponent(location.origin)}` },
+  { name: 'Solflare', get: () => window.solflare, url: u => `https://solflare.com/ul/v1/browse/${encodeURIComponent(u)}?ref=${encodeURIComponent(location.origin)}` },
+  { name: 'Backpack', get: () => window.backpack },
+];
+const b64 = u8 => btoa(String.fromCharCode(...u8));
+let after = '#/app';
+function openWallets(next) {
+  after = next || '#/app';
+  const wl = $('#wl');
+  wl.innerHTML = '';
+  for (const w of WALLETS) {
+    const p = w.get();
+    if (p) {
+      const b = document.createElement('button');
+      b.innerHTML = `${w.name} <span class="mono lime">detected</span>`;
+      b.onclick = () => login(p);
+      wl.append(b);
+    } else if (w.url) {
+      const a = document.createElement('a');
+      a.href = w.url(location.href); a.innerHTML = `${w.name} <span class="mono dim">open in app ↗</span>`;
+      wl.append(a);
+    }
+  }
+  $('#wm').classList.add('open');
+}
+async function login(provider) {
+  try {
+    const res = await provider.connect();
+    const pk = (res?.publicKey || provider.publicKey).toString();
+    const { message } = await post('/api/auth/nonce', { wallet: pk });
+    const signed = await provider.signMessage(new TextEncoder().encode(message), 'utf8');
+    const sig = signed.signature || signed;
+    const { token } = await post('/api/auth/verify', { wallet: pk, signature: b64(new Uint8Array(sig)) });
+    session = token; localStorage.setItem('vl_session', token);
+    $('#wm').classList.remove('open');
+    location.hash = after; route();
+  } catch (e) { toast(e.message || 'cancelled', true); }
+}
+function logout() {
+  session = ''; me = null; op = null; localStorage.removeItem('vl_session');
+  try { window.phantom?.solana?.disconnect?.(); } catch { }
+  $('#pop').classList.remove('open');
+  location.hash = '#/'; route();
+}
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => $('#wm').classList.remove('open'));
+$('#wm').onclick = e => { if (e.target.id === 'wm') $('#wm').classList.remove('open'); };
+
+function renderWallet() {
+  const w = sessionWallet();
+  $('#hconnect').style.display = session ? 'none' : '';
+  $('#wbtn').style.display = session ? 'inline-flex' : 'none';
+  if (!session) return;
+  avatar($('#wava'), w); avatar($('#pava'), w);
+  $('#waddr').textContent = short(w);
+  $('#paddr').textContent = short(w);
+  $('#pscan').href = `https://solscan.io/account/${w}`;
+  $('#pbal').textContent = me ? fmt(me.balance) : '—';
+  $('#ptier').textContent = me ? (me.tier ? me.tier.name : 'none') : '—';
+}
+$('#hconnect').onclick = () => openWallets('#/app');
+$('#wbtn').onclick = e => { e.stopPropagation(); $('#pop').classList.toggle('open'); $('#wbtn').classList.toggle('open'); };
+$('#pcopy').onclick = () => copy(sessionWallet(), 'address copied');
+$('#pout').onclick = logout;
+document.addEventListener('click', e => { if (!e.target.closest('#pop') || e.target.closest('a')) { $('#pop').classList.remove('open'); $('#wbtn').classList.remove('open'); } });
+
+// ---------- network ----------
+let net = null;
+async function loadNet() {
+  try { net = await api('/api/network'); } catch { return; }
+  $('#hlive').textContent = net.online;
+  $('#hdot').className = 'dot' + (net.online ? '' : ' off');
+  const pump = net.mint ? `https://pump.fun/coin/${net.mint}` : null;
+  for (const a of [$('#buy'), $('#f-pump')]) { if (pump) { a.href = pump; a.style.opacity = ''; } else { a.removeAttribute('href'); a.style.opacity = .5; } }
+  if (!pump) $('#buy').firstChild.textContent = '$VLANA · soon ';
+  for (const a of [$('#f-gh'), $('#d-gh')]) { if (net.repo) a.href = net.repo; else a.style.display = 'none'; }
+  renderTiers(); renderDocs(); setGlobeNodes();
+}
+function tierItems(t) {
+  return [`${t.devices} devices`, `${gbcap(t.gb)} / month`, 'two-hop chain', ...['home IPs', 'streaming', 'own node'].map(p => [p, (t.perks || []).includes(p)])];
+}
+function tiersHTML() {
+  const mine = me?.tier?.name;
+  return [...net.tiers].sort((a, b) => a.min - b.min).map(t => `<div class="tier${t.name === mine ? ' me' : ''}">
+    <div class="top"><div class="name"><span>${esc(t.name)}/</span>${t.name === mine ? '<span class="tag">you</span>' : ''}</div>
+    <div><div class="amt">${fmt(t.min)}</div><div class="mono dim" style="margin-top:8px">$VLANA held</div></div></div>
+    <ol>${tierItems(t).map((x, k) => {
+      const n = `<i>${String(k + 1).padStart(2, '0')}</i>`;
+      return Array.isArray(x) ? `<li class="${x[1] ? '' : 'x'}">${n}${x[1] ? esc(x[0]) : `<s>${esc(x[0])}</s>`}</li>` : `<li>${n}${esc(x)}</li>`;
+    }).join('')}</ol></div>`).join('');
+}
+function renderTiers() {
+  $('#tiers').innerHTML = tiersHTML();
+  const at = $('#a-tiers');
+  if (me && !me.tier) { at.innerHTML = tiersHTML(); at.style.display = ''; } else at.style.display = 'none';
+}
+function renderDocs() {
+  const host = location.origin;
+  $('#d-cmd').innerHTML = `curl -fsSL ${esc(host)}/install.sh | sudo bash -s <span class="lime">&lt;token&gt;</span>`;
+  document.querySelectorAll('.d-host').forEach(e => e.textContent = host);
+  $('#d-tiers').innerHTML = `<tr><th>plan</th><th>hold</th><th>devices</th><th>traffic</th><th>extras</th></tr>` +
+    [...net.tiers].sort((a, b) => a.min - b.min).map(t => `<tr><td>${esc(t.name)}</td><td>${fmt(t.min)} $VLANA</td><td>${t.devices}</td><td>${gbcap(t.gb)} / mo</td><td>${esc((t.perks || []).join(', ') || '—')}</td></tr>`).join('');
+  const names = { operators: 'node operators', checkers: 'checkers, who keep the network honest', buyback: '$VLANA buyback' };
+  $('#d-split').innerHTML = Object.entries(net.split).map(([k, v]) => `<tr><td style="width:70px" class="lime">${v}%</td><td>${esc(names[k] || k)}</td></tr>`).join('');
+}
+
+// ---------- how to connect ----------
+const AS = 'https://apps.apple.com/app/', GH = 'https://github.com/';
+const PLATFORMS = {
+  iphone: { name: 'iPhone / iPad', apps: [
+    { n: 'Hiddify', rec: 1, d: 'Free, open source. One tap import.', url: AS + 'hiddify-proxy-vpn/id6596777532', store: 'App Store' },
+    { n: 'Streisand', d: 'Free, clean, popular on iOS.', url: AS + 'streisand/id6450534064', store: 'App Store' }],
+    add: 'Press <b>Open in Hiddify</b> on this phone, or scan the QR with the camera from your computer screen.' },
+  android: { name: 'Android', apps: [
+    { n: 'Hiddify', rec: 1, d: 'Free, open source. One tap import.', url: 'https://play.google.com/store/apps/details?id=app.hiddify.com', store: 'Google Play' },
+    { n: 'v2rayNG', d: 'Lightweight classic. APK from GitHub.', url: GH + '2dust/v2rayNG/releases/latest', store: 'GitHub' }],
+    add: 'Press <b>Open in Hiddify</b> on this phone, or in Hiddify tap <b>+</b> → <b>Scan QR</b>.' },
+  windows: { name: 'Windows', apps: [
+    { n: 'Hiddify', rec: 1, d: 'Grab the Windows setup .exe.', url: GH + 'hiddify/hiddify-app/releases/latest', store: 'GitHub' },
+    { n: 'v2rayN', d: 'Power-user client.', url: GH + '2dust/v2rayN/releases/latest', store: 'GitHub' }],
+    add: 'Press <b>Copy link</b>. In Hiddify press <b>+</b> → <b>Add from clipboard</b>.' },
+  mac: { name: 'macOS', apps: [
+    { n: 'Hiddify', rec: 1, d: 'Grab the macOS .dmg.', url: GH + 'hiddify/hiddify-app/releases/latest', store: 'GitHub' },
+    { n: 'Streisand', d: 'Apple silicon Macs, from the App Store.', url: AS + 'streisand/id6450534064', store: 'App Store' }],
+    add: 'Press <b>Copy link</b>. In Hiddify press <b>+</b> → <b>Add from clipboard</b>.' },
+  linux: { name: 'Linux', apps: [
+    { n: 'Hiddify', rec: 1, d: 'AppImage, deb or rpm.', url: GH + 'hiddify/hiddify-app/releases/latest', store: 'GitHub' },
+    { n: 'v2rayN', d: 'Also ships Linux builds.', url: GH + '2dust/v2rayN/releases/latest', store: 'GitHub' }],
+    add: 'Press <b>Copy link</b>. In Hiddify press <b>+</b> → <b>Add from clipboard</b>.' },
+};
+function guessPlatform() {
+  const u = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(u) || (/Mac/.test(u) && navigator.maxTouchPoints > 1)) return 'iphone';
+  if (/Android/.test(u)) return 'android';
+  if (/Win/.test(u)) return 'windows';
+  if (/Mac/.test(u)) return 'mac';
+  return 'linux';
+}
+let plat = guessPlatform();
+function renderHow() {
+  const p = PLATFORMS[plat];
+  $('#plat').innerHTML = Object.entries(PLATFORMS).map(([k, v]) => `<button data-p="${k}" class="${k === plat ? 'on' : ''}"><span class="dot"></span>${v.name}</button>`).join('');
+  const hasKey = me?.keys?.length;
+  $('#howsteps').innerHTML = `
+    <div class="step"><span class="mono">01</span><h3>Install ${esc(p.apps[0].n)}</h3><p>${esc(p.apps[0].d)}</p><div class="acts"><a class="btn ghost sm" target="_blank" rel="noopener" href="${p.apps[0].url}">${esc(p.apps[0].store)} ↗</a></div></div>
+    <div class="step"><span class="mono">02</span><h3>Add your link</h3><p>${p.add}</p>${hasKey ? '' : '<p class="mute">Add a device above first.</p>'}</div>
+    <div class="step"><span class="mono">03</span><h3>Connect</h3><p>Tap the big button. The app picks the fastest node. Allow the VPN prompt the first time.</p></div>`;
+  $('#clients').innerHTML = p.apps.map(a => `<div class="app"><div class="t"><b>${esc(a.n)}</b>${a.rec ? '<span class="tag">recommended</span>' : '<span class="tag o">alternative</span>'}</div><p>${esc(a.d)}</p><div class="acts"><a class="btn ${a.rec ? 'lime' : 'ghost'} sm" target="_blank" rel="noopener" href="${a.url}">${esc(a.store)} ↗</a></div></div>`).join('');
+}
+$('#plat').onclick = e => { const b = e.target.closest('[data-p]'); if (b) { plat = b.dataset.p; renderHow(); } };
+
+// ---------- devices ----------
+let me = null;
+async function loadMe(refresh) {
+  me = await api('/api/me' + (refresh ? '?refresh' : ''));
+  const t = me.tier;
+  renderWallet();
+  $('#a-bal').textContent = fmt(me.balance);
+  $('#a-tier').innerHTML = t ? `<span class="lime">${esc(t.name)}</span>` : '<span class="dim">none</span>';
+  $('#a-dev').textContent = t ? `${me.keys.length} / ${t.devices}` : '—';
+  $('#a-used').textContent = t ? `${gb(me.keys.reduce((s, k) => s + k.used, 0))} GB` : '—';
+  const min = Math.min(...(me.tiers.length ? me.tiers.map(x => x.min) : [0]));
+  $('#a-gate').innerHTML = t ? '' : `<div class="note"><p>Hold ${fmt(min)} $VLANA to get in. Your devices turn on by themselves once you do.</p>
+    <div class="form"><button class="btn ghost" id="a-ref">I bought, refresh</button>${me.mint ? `<a class="btn lime" target="_blank" rel="noopener" href="https://pump.fun/coin/${esc(me.mint)}">Buy $VLANA ${ARROW}</a>` : ''}</div></div>`;
+  if ($('#a-ref')) $('#a-ref').onclick = () => loadMe(true).then(() => toast('balance updated')).catch(e => toast(e.message, true));
+  if (net) renderTiers();
+  const full = t && me.keys.length >= t.devices;
+  $('#a-addrow').style.display = t && !full ? '' : 'none';
+  $('#a-keys').innerHTML = me.keys.length ? me.keys.map(k => {
+    const usedPct = k.cap ? Math.min(1, k.used / k.cap) : 0;
+    const why = k.active ? 'on · ready to connect' : !t ? 'paused · no plan' : k.used >= k.cap ? 'paused · monthly cap reached' : 'paused · over your device limit';
+    return `<div class="dev" data-id="${k.id}">
+      <div><div class="n"><span class="dot${k.active ? '' : ' off'}"></span>${esc(k.label)}</div><div class="mono dim" style="margin-top:6px">${why}</div></div>
+      <div><div class="mono dim" style="display:flex;justify-content:space-between;margin-bottom:8px"><span>this month</span><span>${gb(k.used)} / ${gb(k.cap)} GB</span></div><div class="meter"><i style="width:${usedPct * 100}%"></i></div></div>
+      <div class="acts">
+        <a class="btn lime sm" href="hiddify://import/${esc(k.sub)}#Vlana">Open in Hiddify</a>
+        <button class="btn ghost sm" data-act="copy">Copy link</button>
+        <button class="btn ghost sm" data-act="qr">QR</button>
+        <button class="btn ghost sm" data-act="del">Remove</button>
+      </div>
+      <div class="qr"><div class="box"></div><div class="mono dim" style="max-width:360px;line-height:1.7">Scan in your VPN app: <b class="lime">+</b> → Scan QR.<br>The link updates itself. Don't share it,<br>it counts against your traffic.</div></div>
+    </div>`;
+  }).join('') : t ? `<div class="blank"><b>Add your first device.</b><p>Name it below. You'll get a link for that device, then follow the steps under how-to-connect.</p></div>` : '';
+  renderHow();
+}
+$('#a-keys').onclick = async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const row = b.closest('.dev'), k = me.keys.find(x => x.id === +row.dataset.id);
+  if (b.dataset.act === 'copy') return copy(k.sub, 'link copied');
+  if (b.dataset.act === 'qr') {
+    const q = row.querySelector('.qr'), box = q.querySelector('.box');
+    if (!box.childNodes.length) new QRCode(box, { text: k.sub, width: 360, height: 360, colorDark: '#121212', colorLight: '#edede8', correctLevel: QRCode.CorrectLevel.M });
+    return q.classList.toggle('open');
+  }
+  if (b.dataset.act === 'del') {
+    if (!confirm(`Remove ${k.label}? Its link stops working.`)) return;
+    try { await del('/api/keys/' + k.id); await loadMe(); } catch (err) { toast(err.message, true); }
+  }
+};
+$('#a-add').onsubmit = async e => {
+  e.preventDefault();
+  try { await post('/api/keys', { label: $('#a-label').value }); $('#a-label').value = ''; await loadMe(); toast('device added'); } catch (err) { toast(err.message, true); }
+};
+
+// ---------- nodes ----------
+const STATUS = {
+  enrolling: 'run the command below on your server',
+  pending: 'installed · waiting for the first check',
+  active: 'live · serving and earning',
+  offline: 'no answer for 15 min · check the logs',
+  banned: 'removed from the network',
+};
+let op = null;
+async function loadOp() {
+  op = await api('/api/operator');
+  const live = op.nodes.filter(n => n.status === 'active' || n.status === 'offline');
+  $('#o-end').textContent = left(op.round.end - Date.now());
+  $('#o-track').textContent = live.length ? `${live.filter(n => n.onTrack).length} / ${live.length}` : '—';
+  $('#o-last').textContent = op.lastRound ? sol(op.lastRound.amount) : '—';
+  $('#o-earned').innerHTML = sol(op.paid) + (op.owed > 0 ? `<span class="mono dim" style="display:block;margin-top:4px">+${sol(op.owed)} waiting</span>` : '');
+  $('#o-max').textContent = op.maxNodes;
+  $('#o-th').style.display = op.nodes.length ? '' : 'none';
+  const good = Math.round(op.round.good * 100);
+  $('#o-nodes').innerHTML = op.nodes.length ? op.nodes.map(n => `<div class="nrow" data-id="${n.id}">
+      <span class="n">${esc(n.install ? 'new node' : n.name)}${n.home ? ' <span class="tag o">home</span>' : ''}</span>
+      <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="pill ${esc(n.status)}">${esc(n.status)}</span><span class="why">${n.status === 'active' ? (n.onTrack ? `on track · paid when the hour closes` : `under ${good}% this hour · no pay for it`) : STATUS[n.status] || ''}</span></span>
+      <span class="mono hide ${n.onTrack ? 'lime' : 'dim'}">${n.install || !n.checks ? '—' : `${pct(n.uptime)} <span class="mute">${n.checks} checks</span>`}</span>
+      <span class="mono dim hide">${n.latency ? n.latency + 'ms' : '—'}</span>
+      <span class="mono hide">${n.earned ? sol(n.earned) : '—'}</span>
+      <span class="acts" style="justify-content:flex-end"><button class="btn ghost sm" data-act="del">Remove</button></span>
+      ${n.install ? `<div class="install"><div class="mono dim" style="margin-bottom:8px">ssh into your server and paste this · runs as root · ~1 min</div><div class="code"><code>${esc(n.install)}</code><button class="btn lime sm" data-act="copy">Copy</button></div></div>` : ''}
+    </div>`).join('') : `<div class="blank"><b>No nodes yet.</b><p>Press Add a node, paste one command on your server. From its first good hour, it earns.</p></div>`;
+  $('#o-pay').innerHTML = op.payouts.length ? op.payouts.map(p => `<a href="https://solscan.io/tx/${esc(p.tx)}" target="_blank" rel="noopener" class="r mono">
+      <span class="dim">${ago(p.paid_at)}</span><span>round #${p.round}</span><span class="dim">${esc(short(p.tx))} ↗</span><span class="lime" style="text-align:right">${sol(p.amount)}</span></a>`).join('')
+    : `<div class="empty mono">${op.owed > 0 ? `${sol(op.owed)} earned · goes out once it passes ${sol(op.round.minPayout)}` : 'first payout lands after your node’s first good hour'}</div>`;
+}
+$('#o-nodes').onclick = async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const n = op.nodes.find(x => x.id === +b.closest('.nrow').dataset.id);
+  if (b.dataset.act === 'copy') return copy(n.install, 'command copied');
+  if (!confirm(`Remove ${n.install ? 'this node' : n.name}?`)) return;
+  try { await del('/api/operator/nodes/' + n.id); await loadOp(); } catch (err) { toast(err.message, true); }
+};
+$('#o-add').onclick = async () => {
+  try { await post('/api/operator/enroll', {}); await loadOp(); toast('install command ready'); } catch (err) { toast(err.message, true); }
+};
+setInterval(() => { if (op) $('#o-end').textContent = left(op.round.end - Date.now()); }, 1000);
+
+// ---------- docs ----------
+const secs = [...document.querySelectorAll('#doc section')];
+$('#toc').innerHTML = secs.map((s, i) => `<a href="#/docs#${s.id}" data-s="${s.id}"><i>${String(i + 1).padStart(2, '0')}</i>${s.dataset.t}</a>`).join('');
+$('#toc').onclick = e => { const a = e.target.closest('a'); if (!a) return; e.preventDefault(); history.replaceState(null, '', a.getAttribute('href')); $('#' + a.dataset.s).scrollIntoView({ behavior: 'smooth' }); };
+const spy = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) document.querySelectorAll('#toc a').forEach(a => a.classList.toggle('on', a.dataset.s === x.target.id)); }), { rootMargin: '-30% 0px -60% 0px' });
+secs.forEach(s => spy.observe(s));
+
+// ---------- payouts ----------
+let pay = null;
+const time = t => new Date(t).toLocaleString('en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+function ago(t) {
+  const s = (Date.now() - t) / 1000;
+  return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : time(t);
+}
+async function loadPay() {
+  pay = await api('/api/payouts');
+  $('#p-total').textContent = sol(pay.paid);
+  $('#p-n').textContent = pay.transfers_n;
+  $('#p-ops').textContent = pay.operators;
+  $('#p-next').textContent = left(pay.round.end - Date.now());
+  const W = pay.wallets, wal = (w, label, note) => `<div class="cell wal">
+      <span class="mono dim">${label}</span>
+      ${w ? `<div class="bal">${w.balance == null ? '—' : (+w.balance).toLocaleString('en', { maximumFractionDigits: 3 })}<small>SOL now</small></div>
+      <div class="addr">${esc(w.address)}</div>
+      <div class="acts"><button class="btn ghost sm" data-copy="${esc(w.address)}">Copy address</button><a class="btn lime sm" target="_blank" rel="noopener" href="https://solscan.io/account/${esc(w.address)}">Solscan ↗</a></div>
+      <p class="dim" style="font-size:15px">${note}</p>`
+      : `<p class="dim" style="font-size:15px">Not published yet.</p>`}</div>`;
+  $('#p-wallets').innerHTML =
+    wal(W.treasury, 'treasury · receives creator fees · pays operators', 'Hot wallet. Holds only what the next payouts need.') +
+    wal(W.buyback, 'buyback · checkers + buyback share', 'Cold wallet. Everything that isn’t paid to operators gets swept here.');
+  $('#t-in').textContent = sol(W.feesIn);
+  $('#t-paid').textContent = sol(pay.paid);
+  $('#t-owed').textContent = sol(W.owed);
+  $('#t-kept').textContent = sol(Math.max(0, W.feesIn * (100 - (pay.split.operators ?? 100)) / 100));
+  const tr = $('#p-treasury');
+  if (pay.treasury) tr.href = `https://solscan.io/account/${pay.treasury}`; else tr.removeAttribute('href');
+  const names = { operators: 'node operators · sent every hour', checkers: 'checkers', buyback: '$VLANA buyback' };
+  $('#p-split').innerHTML = `<span class="mono dim">every round's fees</span>` + Object.entries(pay.split).map(([k, v]) =>
+    `<div><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:18px">${esc(names[k] || k)}</span><span class="mono ${k === 'operators' ? 'lime' : 'dim'}">${v}%</span></div><div class="meter"><i style="width:${v}%"></i></div></div>`).join('');
+  $('#p-rd').innerHTML = pay.rounds.length
+    ? `<div class="r th"><span>round</span><span>closed</span><span>fees in · nodes paid</span><span style="text-align:right">to operators</span></div>` + pay.rounds.map(r =>
+      `<div class="r mono"><span class="dim">#${r.n}</span><span>${time(r.end)}</span><span class="dim">${sol(r.inflow)} · ${r.nodes}</span><span class="${r.pool ? 'lime' : 'mute'}" style="text-align:right">${sol(r.pool)}</span></div>`).join('')
+    : `<div class="empty mono">first round closes in ${left(pay.round.end - Date.now())}</div>`;
+  $('#p-tx').innerHTML = pay.transfers.length
+    ? `<div class="r th"><span>when</span><span>operator</span><span>tx</span><span style="text-align:right">amount</span></div>` + pay.transfers.map(p =>
+      `<a class="r mono" href="https://solscan.io/tx/${esc(p.tx)}" target="_blank" rel="noopener"><span class="dim">${ago(p.paid_at)}</span><span>${esc(short(p.wallet))}</span><span class="dim">${esc(short(p.tx))} ↗</span><span class="lime" style="text-align:right">${sol(p.amount)}</span></a>`).join('')
+    : `<div class="empty mono">no transfers yet</div>`;
+}
+$('#p-wallets').onclick = e => { const b = e.target.closest('[data-copy]'); if (b) copy(b.dataset.copy, 'address copied'); };
+setInterval(() => { if (pay) $('#p-next').textContent = left(pay.round.end - Date.now()); }, 1000);
+
+// ---------- network globe ----------
+// rough country centroids; nodes only report a country, so each gets a small stable offset around it
+const CC = Object.fromEntries('US:39.8,-98.6;CA:56.1,-106.3;MX:23.6,-102.5;BR:-14.2,-51.9;AR:-38.4,-63.6;CL:-35.7,-71.5;CO:4.6,-74.3;PE:-9.2,-75;GB:54,-2;IE:53.4,-8.2;FR:46.2,2.2;DE:51.2,10.4;NL:52.1,5.3;BE:50.5,4.5;LU:49.8,6.1;CH:46.8,8.2;AT:47.5,14.6;IT:41.9,12.6;ES:40.5,-3.7;PT:39.4,-8.2;PL:51.9,19.1;CZ:49.8,15.5;SK:48.7,19.7;HU:47.2,19.5;RO:45.9,25;BG:42.7,25.5;GR:39.1,21.8;SE:60.1,18.6;NO:60.5,8.5;FI:61.9,25.7;DK:56.3,9.5;EE:58.6,25;LV:56.9,24.6;LT:55.2,23.9;UA:48.4,31.2;MD:47.4,28.4;RS:44,21;HR:45.1,15.2;SI:46.2,15;TR:39,35.2;IL:31,34.9;AE:23.4,53.8;SA:23.9,45.1;QA:25.4,51.2;IN:20.6,79;PK:30.4,69.3;KZ:48,66.9;GE:42.3,43.4;AM:40.1,45;AZ:40.1,47.6;RU:61.5,105.3;CN:35.9,104.2;HK:22.3,114.2;TW:23.7,121;JP:36.2,138.3;KR:35.9,127.8;SG:1.35,103.8;MY:4.2,102;TH:15.9,101;VN:14.1,108.3;ID:-0.8,113.9;PH:12.9,121.8;AU:-25.3,133.8;NZ:-40.9,174.9;ZA:-30.6,22.9;NG:9.1,8.7;KE:-0.02,37.9;EG:26.8,30.8;MA:31.8,-7.1;IS:65,-19;CY:35.1,33.4;MT:35.9,14.4;BY:53.7,27.9;EE:58.6,25;AL:41.2,20.2;BA:43.9,17.7;ME:42.7,19.4;MK:41.6,21.7;UY:-32.5,-55.8;PA:8.5,-80.8;CR:9.7,-83.8;BD:23.7,90.4;LK:7.9,80.8;NP:28.4,84.1'
+  .split(';').map(x => { const [c, ll] = x.split(':'); const [la, lo] = ll.split(',').map(Number); return [c, [lo, la]]; }));
+const regionName = (() => { try { const d = new Intl.DisplayNames(['en'], { type: 'region' }); return c => { try { return d.of(c); } catch { return c; } }; } catch { return c => c; } })();
+const G = { rot: [-15, -25], nodes: [], hover: null, sel: null };
+function hash(s) { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
+function setGlobeNodes() {
+  if (!net) return;
+  G.nodes = net.nodes.map(n => {
+    const c = CC[(n.country || '').toUpperCase()];
+    const h = hash(n.name);
+    return { ...n, ll: c && [c[0] + ((h & 255) / 255 - .5) * 3, c[1] + ((h >> 8 & 255) / 255 - .5) * 2.4], ph: (h >> 16 & 255) / 255 };
+  }).sort((a, b) => b.online - a.online || b.uptime - a.uptime);
+  const on = G.nodes.filter(n => n.online), lat = on.filter(n => n.latency);
+  $('#n-on').textContent = on.length;
+  $('#n-cc').textContent = new Set(on.map(n => n.country)).size;
+  $('#n-home').textContent = on.filter(n => n.home).length;
+  $('#n-lat').textContent = lat.length ? Math.round(lat.reduce((s, n) => s + n.latency, 0) / lat.length) + 'ms' : '—';
+  $('#slist').innerHTML = `<div class="h mono"><span>servers/</span><span class="dim">${G.nodes.length}</span></div>` + (G.nodes.length ? G.nodes.map((n, i) => `
+    <div class="srow${n === G.sel ? ' on' : ''}" data-i="${i}"><span class="dot${n.online ? '' : ' off'}"></span>
+      <div><b>${esc(n.name)}${n.home ? ' <span class="tag o">home</span>' : ''}</b><span class="mono dim">${esc(regionName(n.country || '??'))}</span></div>
+      <div class="r mono"><div>${n.online ? pct(n.uptime) : 'offline'}</div><div class="dim">${n.latency ? n.latency + 'ms' : '—'}</div></div></div>`).join('')
+    : `<div class="blank" style="border:0"><b>No servers yet.</b><p>Be the first node on the map.</p></div>`);
+}
+$('#slist').onclick = e => { const r = e.target.closest('.srow'); if (r) selectNode(G.nodes[+r.dataset.i]); };
+$('#slist').onmouseover = e => { const r = e.target.closest('.srow'); G.hover = r ? G.nodes[+r.dataset.i] : null; };
+$('#slist').onmouseleave = () => { G.hover = null; };
+function selectNode(n) {
+  G.sel = n === G.sel ? null : n;
+  document.querySelectorAll('.srow').forEach(r => r.classList.toggle('on', G.nodes[+r.dataset.i] === G.sel));
+  if (G.sel && matchMedia('(max-width:900px)').matches) $('#globe').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (G.sel?.ll) G.tween = { from: [...G.rot], to: [-G.sel.ll[0], Math.max(-60, Math.min(60, -G.sel.ll[1]))], t0: performance.now() };
+}
+async function initGlobe() {
+  if (G.ready) return;
+  G.ready = true;
+  if (!window.d3 || !window.topojson) return;
+  const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-110m.json').then(r => r.json()).catch(() => null);
+  G.land = topo ? topojson.feature(topo, topo.objects.land) : null;
+  G.gratLand = d3.geoGraticule().step([2.5, 2.5])();
+  G.gratSea = d3.geoGraticule().step([15, 15])();
+  G.axes = { type: 'MultiLineString', coordinates: [[[-180, 0], [-90, 0], [0, 0], [90, 0], [180, 0]], [[0, -90], [0, 0], [0, 90]]] };
+  G.cv = $('#gcv'); G.ctx = G.cv.getContext('2d');
+  G.proj = d3.geoOrthographic().clipAngle(90).precision(.4);
+  G.path = d3.geoPath(G.proj, G.ctx);
+  // the far side, seen through the globe: same view rotated 180° and mirrored
+  G.back = d3.geoOrthographic().clipAngle(90).precision(.6).reflectX(true);
+  G.bpath = d3.geoPath(G.back, G.ctx);
+  const fit = () => {
+    const r = $('#globe').getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    G.w = r.width; G.h = r.height;
+    G.cv.width = r.width * dpr; G.cv.height = r.height * dpr;
+    G.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const R = Math.min(r.width, r.height) / 2 - 58;
+    G.proj.scale(R).translate([r.width / 2, r.height / 2]);
+    G.back.scale(R).translate([r.width / 2, r.height / 2]);
+  };
+  new ResizeObserver(fit).observe($('#globe')); fit();
+  const el = $('#globe');
+  el.addEventListener('pointerdown', e => { G.drag = { x: e.clientX, y: e.clientY, rot: [...G.rot], moved: 0 }; G.tween = null; el.setPointerCapture(e.pointerId); el.classList.add('grab'); });
+  el.addEventListener('pointermove', e => {
+    const r = el.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if (G.drag) {
+      const dx = e.clientX - G.drag.x, dy = e.clientY - G.drag.y; G.drag.moved = Math.max(G.drag.moved, Math.abs(dx) + Math.abs(dy));
+      const k = 90 / G.proj.scale() * 1.6;
+      G.rot = [G.drag.rot[0] + dx * k, Math.max(-70, Math.min(70, G.drag.rot[1] - dy * k))];
+      return;
+    }
+    let best = null, bd = 16;
+    for (const n of G.nodes) if (n.xy) { const d = Math.hypot(n.xy[0] - x, n.xy[1] - y); if (d < bd) { bd = d; best = n; } }
+    G.hover = best;
+  });
+  el.addEventListener('pointerup', e => { if (G.drag && G.drag.moved < 4) selectNode(G.hover || G.sel); G.drag = null; el.classList.remove('grab'); });
+  el.addEventListener('pointerleave', () => { if (!G.drag) G.hover = null; });
+  let last = performance.now();
+  const frame = t => {
+    const dt = Math.min(64, t - last); last = t;
+    if ($('#v-net').classList.contains('on')) {
+      if (G.tween) {
+        const k = Math.min(1, (t - G.tween.t0) / 900), e = 1 - Math.pow(1 - k, 3);
+        let d0 = ((G.tween.to[0] - G.tween.from[0] + 540) % 360) - 180;
+        G.rot = [G.tween.from[0] + d0 * e, G.tween.from[1] + (G.tween.to[1] - G.tween.from[1]) * e];
+        if (k === 1) G.tween = null;
+      } else if (!G.drag && !G.sel && !G.hover) G.rot[0] += dt * .006;
+      drawGlobe(t);
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+function drawGlobe(t) {
+  const { ctx, w, h, proj, path, back, bpath } = G;
+  const INK = a => `rgba(237,237,232,${a})`, LIME = a => `rgba(207,255,58,${a})`;
+  proj.rotate(G.rot);
+  back.rotate([G.rot[0] + 180, -G.rot[1]]);
+  ctx.clearRect(0, 0, w, h);
+  const R = proj.scale(), [cx, cy] = proj.translate();
+  ctx.lineWidth = .6;
+
+  // see-through: the far side is drawn first, dimmer, mirrored as if looking through glass
+  ctx.beginPath(); bpath(G.gratSea); ctx.strokeStyle = INK(.035); ctx.stroke();
+  if (G.land) {
+    ctx.save(); ctx.beginPath(); bpath(G.land); ctx.clip();
+    ctx.beginPath(); bpath(G.gratLand); ctx.strokeStyle = INK(.13); ctx.stroke();
+    ctx.restore();
+    ctx.beginPath(); bpath(G.land); ctx.strokeStyle = INK(.1); ctx.stroke();
+  }
+  const onAll = G.nodes.filter(n => n.online && n.ll), pair = a => onAll[(onAll.indexOf(a) + 1 + (hash(a.name) % Math.max(1, onAll.length - 1))) % onAll.length];
+  if (onAll.length > 1) {
+    ctx.setLineDash([2, 5]); ctx.lineDashOffset = -t / 60;
+    for (const a of onAll) { const b = pair(a); if (a === b) continue; ctx.beginPath(); bpath({ type: 'LineString', coordinates: [a.ll, b.ll] }); ctx.strokeStyle = LIME(.14); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+  const bc = back.invert(back.translate());
+  for (const n of G.nodes) {
+    if (!n.ll || d3.geoDistance(n.ll, bc) > Math.PI / 2) continue;
+    const [x, y] = back(n.ll); ctx.fillStyle = n.online ? LIME(.35) : INK(.15); ctx.fillRect(x - 2, y - 2, 4, 4);
+  }
+  ctx.beginPath(); path(G.gratSea); ctx.strokeStyle = INK(.08); ctx.stroke();
+  // land = dense mesh clipped to the coastline
+  if (G.land) {
+    ctx.save(); ctx.beginPath(); path(G.land); ctx.clip();
+    ctx.beginPath(); path(G.gratLand); ctx.strokeStyle = INK(.42); ctx.stroke();
+    ctx.restore();
+    ctx.beginPath(); path(G.land); ctx.strokeStyle = INK(.22); ctx.stroke();
+  }
+  ctx.beginPath(); path(G.axes); ctx.strokeStyle = LIME(.35); ctx.setLineDash([1, 3]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); path({ type: 'Sphere' }); ctx.strokeStyle = INK(.28); ctx.lineWidth = 1; ctx.stroke();
+
+  // dial: longitude scale, the top mark is the longitude facing you
+  const r1 = R + 14, lon0 = ((-G.rot[0] % 360) + 360) % 360;
+  ctx.beginPath(); ctx.arc(cx, cy, r1, 0, 2 * Math.PI); ctx.strokeStyle = INK(.1); ctx.lineWidth = 1; ctx.stroke();
+  for (let d = 0; d < 360; d += 2.5) {
+    const a = (d - lon0 - 90) * Math.PI / 180, big = d % 30 === 0, mid = d % 10 === 0;
+    const l = big ? 10 : mid ? 6 : 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    ctx.lineTo(cx + Math.cos(a) * (r1 + l), cy + Math.sin(a) * (r1 + l));
+    ctx.strokeStyle = big ? INK(.45) : INK(.16); ctx.stroke();
+    if (big && R > 160) {
+      ctx.fillStyle = INK(.35); ctx.font = '10px "Geist Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(d).padStart(3, '0'), cx + Math.cos(a) * (r1 + 22), cy + Math.sin(a) * (r1 + 22));
+    }
+  }
+  // fixed north marker
+  ctx.fillStyle = LIME(.9); ctx.fillRect(cx - 1, cy - r1 - 14, 2, 8);
+
+  // entry → exit links: marching dashes
+  const on = G.nodes.filter(n => n.online && n.ll);
+  ctx.lineWidth = 1;
+  if (on.length > 1) {
+    ctx.setLineDash([2, 5]); ctx.lineDashOffset = -t / 60;
+    on.forEach(a => {
+      const b = pair(a);
+      if (a === b) return;
+      ctx.beginPath(); path({ type: 'LineString', coordinates: [a.ll, b.ll] });
+      ctx.strokeStyle = LIME(.45); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+  }
+  // nodes: square + crosshair, brackets on focus
+  const center = proj.invert([cx, cy]), focus = G.hover || G.sel;
+  for (const n of G.nodes) {
+    n.xy = null;
+    if (!n.ll || d3.geoDistance(n.ll, center) > Math.PI / 2 - .03) continue;
+    const [x, y] = proj(n.ll); n.xy = [x, y];
+    const c = n.online ? '#cfff3a' : '#6a6a66';
+    ctx.strokeStyle = n.online ? LIME(.5) : INK(.2); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x - 9, y); ctx.lineTo(x - 5, y); ctx.moveTo(x + 5, y); ctx.lineTo(x + 9, y);
+    ctx.moveTo(x, y - 9); ctx.lineTo(x, y - 5); ctx.moveTo(x, y + 5); ctx.lineTo(x, y + 9); ctx.stroke();
+    ctx.fillStyle = c; ctx.fillRect(x - 2.5, y - 2.5, 5, 5);
+    if (n.online) { const k = (t / 2200 + n.ph) % 1; ctx.strokeStyle = LIME(.4 * (1 - k)); ctx.strokeRect(x - 4 - k * 10, y - 4 - k * 10, 8 + k * 20, 8 + k * 20); }
+    if (n === focus) {
+      const s = 14, q = 5; ctx.strokeStyle = '#cfff3a'; ctx.lineWidth = 1.2; ctx.beginPath();
+      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { ctx.moveTo(x + sx * s, y + sy * (s - q)); ctx.lineTo(x + sx * s, y + sy * s); ctx.lineTo(x + sx * (s - q), y + sy * s); }
+      ctx.stroke();
+    }
+  }
+  // readout
+  const lon = ((-G.rot[0] % 360) + 540) % 360 - 180, lat = -G.rot[1];
+  $('#gread').textContent = `${Math.abs(lat).toFixed(1).padStart(4, '0')}°${lat >= 0 ? 'N' : 'S'}  ${Math.abs(lon).toFixed(1).padStart(5, '0')}°${lon >= 0 ? 'E' : 'W'}`;
+
+  const tip = $('#gtip');
+  if (focus && focus.xy) {
+    tip.style.display = 'block';
+    tip.innerHTML = `<span class="mono ${focus.online ? 'lime' : 'dim'}">${focus.online ? 'online' : 'offline'}${focus.home ? ' · home line' : ''}</span><b>${esc(focus.name)}</b><span class="mono dim">${esc(regionName(focus.country || '??'))}${focus.online ? ` · ${pct(focus.uptime)} up${focus.latency ? ` · ${focus.latency}ms` : ''}` : ''}</span>`;
+    const tw = tip.offsetWidth, tx = focus.xy[0] + 22 + tw > w ? focus.xy[0] - 22 - tw : focus.xy[0] + 22;
+    tip.style.transform = `translate(${tx}px,${focus.xy[1] - 30}px)`;
+  } else tip.style.display = 'none';
+}
+
+// ---------- router ----------
+async function route() {
+  const [h, anchor] = location.hash.split('#').slice(1);
+  let view = h?.startsWith('/app') ? 'app' : h?.startsWith('/node') ? 'node' : h?.startsWith('/docs') ? 'docs' : h?.startsWith('/network') ? 'net' : h?.startsWith('/payouts') ? 'pay' : 'home';
+  if (view === 'home' && session) { history.replaceState(null, '', '#/app'); view = 'app'; }
+  renderWallet();
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.v === view));
+  if ((view === 'app' || view === 'node') && !session) { show('home'); openWallets('#' + h); return; }
+  show(view);
+  if (view === 'net') { initGlobe(); return; }
+  if (view === 'pay') { loadPay().catch(e => toast(e.message, true)); return; }
+  if (view === 'docs') { if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView()); return; }
+  try {
+    if (view === 'app') await loadMe();
+    if (view === 'node') { if (!me) await loadMe().catch(() => { }); await loadOp(); }
+  } catch (e) { toast(e.message, true); }
+}
+function show(v) {
+  document.querySelectorAll('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+  scrollTo(0, 0);
+}
+addEventListener('hashchange', route);
+$('#c-go').onclick = () => openWallets('#/app');
+
+renderHow();
+loadNet();
+setInterval(loadNet, 60e3);
+route();
+</script>
+</body>
+</html>

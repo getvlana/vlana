@@ -1,0 +1,36 @@
+# /etc/nginx/sites-available/vlana.app — Node app on 127.0.0.1:8792
+# certificate: certbot certonly --webroot -w /var/www/vlana-acme -d vlana.app
+server {
+    listen 80;
+    listen [::]:80;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name vlana.app;
+
+    ssl_certificate /etc/letsencrypt/live/vlana.app/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/vlana.app/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    include /etc/nginx/snippets/cloudflare-realip.conf;
+
+    access_log off;
+    error_log /var/log/nginx/vlana.app.error.log;
+
+    client_max_body_size 1m;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/vlana-acme;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8792;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header CF-Connecting-IP "";
+        proxy_read_timeout 30s;
+    }
+}
