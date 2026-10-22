@@ -479,11 +479,12 @@ function limited(req, bucket, max, windowMs) {
   h.push(t); hits.set(k, h);
   return h.length > max;
 }
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.py': 'text/plain; charset=utf-8' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.py': 'text/plain; charset=utf-8' };
 function serveStatic(res, file) {
   const p = path.join(PUBLIC, path.normalize(file).replace(/^(\.\.[/\\])+/, ''));
   if (!p.startsWith(PUBLIC) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) return send(res, 404, 'not found');
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream' });
+  const img = /\.(png|webp|jpg|ico|svg)$/.test(p);
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream', ...(img ? { 'Cache-Control': 'public, max-age=86400' } : {}) });
   fs.createReadStream(p).pipe(res);
 }
 const nodeAuth = req => {

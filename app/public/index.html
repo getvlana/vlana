@@ -11,7 +11,13 @@
 <meta property="og:description" content="VPN without an account. Your wallet is the login.">
 <meta property="og:url" content="https://vlana.app/">
 <meta property="og:site_name" content="Vlana">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://vlana.app/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -37,9 +43,7 @@ code.k{font:400 .88em 'Geist Mono',monospace;background:var(--raise);border:1px 
 header{position:sticky;top:0;z-index:20;background:rgba(18,18,18,.88);backdrop-filter:blur(10px)}
 .bar{max-width:calc(var(--w) + 2*var(--pad));margin:0 auto;padding:18px var(--pad);display:flex;align-items:center;gap:12px;position:relative}
 .logo{display:flex;align-items:center;gap:10px;font-weight:500;font-size:17px}
-.mark{display:inline-grid;gap:3px;width:22px}
-.mark i{display:block;height:4px;background:var(--a)}
-.mark i:nth-child(2){width:68%}
+.logo .mk{width:32px;height:32px;display:block}
 .nav{display:flex;gap:4px;margin-left:18px}
 .nav a{padding:8px 12px;border-radius:3px;color:var(--dim);font-size:15px}
 .nav a:hover{color:var(--ink)}
@@ -315,7 +319,7 @@ footer a:hover{color:var(--a)}
 
 <header>
   <div class="bar">
-    <a class="logo" href="#/"><span class="mark"><i></i><i></i><i></i></span>Vlana</a>
+    <a class="logo" href="#/"><img class="mk" src="/logo.webp" width="32" height="32" alt="">Vlana</a>
     <nav class="nav" id="nav">
       <a href="#/app" data-v="app">Devices</a>
       <a href="#/node" data-v="node">Nodes</a>
