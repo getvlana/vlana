@@ -72,7 +72,8 @@ const REVISION = (() => {
   try { return require('node:child_process').execSync('git rev-parse HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return ''; }
 })();
 const SERVED = { 'app/public/index.html': '/', 'app/node/install.sh': '/install.sh', 'app/node/agent.py': '/agent.py' };
-const fileHash = rel => crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, '..', rel))).digest('hex');
+// repo paths are relative to the repo root; on a server only app/ is deployed, so resolve from here
+const fileHash = rel => crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, rel.replace(/^app\//, '')))).digest('hex');
 
 const db = new DatabaseSync(path.join(DATA, 'vlana.db'));
 db.exec(`
